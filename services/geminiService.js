@@ -17,8 +17,24 @@ export const isAnyModelConfigured = () => !!apiKey;
 // Initialize Gemini Client
 const geminiClient = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
-// Use 'gemini-2.5-flash' for both text and multimodal tasks as it is cost-effective and capable.
+// Use 'gemini-2.5-flash' for both text and multimodal tasks
 const modelId = 'gemini-2.5-flash';
+
+// Helper for exponential backoff retry
+const fetchWithRetry = async (apiCall, retries = 3, delay = 1000) => {
+    try {
+        return await apiCall();
+    } catch (error) {
+        // Retry on 503 (Service Unavailable) or 429 (Too Many Requests)
+        const shouldRetry = error.status === 503 || error.status === 429 || error.message?.includes('503');
+        if (retries > 0 && shouldRetry) {
+            console.warn(`API Error ${error.status}. Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(apiCall, retries - 1, delay * 2);
+        }
+        throw error;
+    }
+};
 
 /**
  * Analyzes project schedule data (text or image) against specific standards.
@@ -95,19 +111,23 @@ export const analyzeSchedule = async (inputData, isImage, standardId, language) 
         ];
     }
 
-    const result = await geminiClient.models.generateContent({
-        model: modelId,
-        contents: { parts },
-        config: { 
-            systemInstruction,
-            responseMimeType: "application/json" 
-        }
-    });
-
     try {
+        const result = await fetchWithRetry(() => geminiClient.models.generateContent({
+            model: modelId,
+            contents: { parts },
+            config: { 
+                systemInstruction,
+                responseMimeType: "application/json" 
+            }
+        }));
+
+        if (!result.text) {
+             throw new Error("Empty response from AI model.");
+        }
+
         return JSON.parse(result.text);
     } catch (e) {
-        console.error("Failed to parse Gemini response", e);
-        throw new Error("Failed to parse analysis results.");
+        console.error("Gemini Analysis Failed:", e);
+        throw new Error("Failed to parse analysis results. Please try again.");
     }
 };
