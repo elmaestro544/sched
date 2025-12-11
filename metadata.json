@@ -1,0 +1,5 @@
+{
+  "name": "SchedAI",
+  "description": "An intelligent assistant designed specifically to review project schedules according to quality standards, supporting planning teams by highlighting non-compliance and generating professional contractor notes.",
+  "requestFramePermissions": []
+}

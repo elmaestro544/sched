@@ -1,0 +1,228 @@
+import { CheckIcon } from './components/Shared.js';
+
+export const AppView = Object.freeze({
+  Home: 'home',
+  PMCAgent: 'pmcAgent',
+  About: 'about',
+  Contact: 'contact',
+  Terms: 'terms',
+  Privacy: 'privacy',
+});
+
+export const Language = Object.freeze({
+  EN: 'en',
+  AR: 'ar',
+});
+
+export const PLANNING_STANDARDS = [
+  { id: 'dcma', name: { en: 'DCMA 14-Point Assessment', ar: 'تقييم DCMA (14 نقطة)' } },
+  { id: 'aramco', name: { en: 'Saudi Aramco Schedule Standards', ar: 'معايير أرامكو السعودية' } },
+  { id: 'fidic', name: { en: 'FIDIC Contract Requirements', ar: 'متطلبات عقود فيديك' } },
+  { id: 'pmi', name: { en: 'PMI Scheduling Practice', ar: 'ممارسات الجدولة (PMI)' } },
+  { id: 'general', name: { en: 'General Best Practices', ar: 'أفضل الممارسات العامة' } }
+];
+
+export const i18n = {
+  [Language.EN]: {
+    title: "SchedAI",
+    navHome: "Home",
+    navAgent: "Schedule Reviewer",
+    navAbout: "About Us",
+    navContact: "Contact Us",
+    navTerms: "Terms",
+    navPrivacy: "Privacy",
+    
+    // Home
+    homeWelcome: "Review Schedules Faster & Better",
+    homeDescription: "Upload schedule files (Text/CSV/XML) or screenshots of Gantt Charts. Your intelligent assistant will analyze them according to PMC standards and generate a professional report.",
+    homeAgentTitle: "Start Analysis",
+    homeAgentDesc: "Comprehensive analysis, non-compliance detection, and professional contractor notes.",
+    
+    // PMC Agent Feature
+    agentTitle: "Expert Schedule Reviewer",
+    agentDescription: "A seasoned PMC assistant designed to perform comprehensive schedule evaluations, highlight non-compliance, and generate actionable decision support data.",
+    inputLabel: "Upload Schedule or Drop Screenshot",
+    inputPlaceholder: "Paste schedule narrative, log, or analysis text here...",
+    dragDrop: "Click to upload or drag and drop",
+    dragDropSub: "Accepts CSV, Text, XML files or Images (Screenshots) of Gantt Charts",
+    selectStandard: "Select Review Standard",
+    analyzeButton: "Run Expert Analysis",
+    analyzing: "Performing Comprehensive Evaluation...",
+    
+    // Output Sections
+    analysisReport: "Executive Summary",
+    riskAssessment: "Risk Assessment",
+    technicalFindings: "Technical Findings",
+    recommendations: "Strategic Recommendations",
+    nonCompliance: "Non-Compliance Issues",
+    contractorNote: "Formal Contractor Correspondence",
+    copy: "Copy",
+    copied: "Copied!",
+    
+    // About
+    aboutTitle: "About SchedAI",
+    aboutText: "SchedAI is a specialized tool designed to support planning teams in Project Management Consultancies. It streamlines the review process by automatically detecting schedule anomalies, ensuring compliance with standards, and drafting professional correspondence.",
+    aboutVisionTitle: "Our Vision",
+    aboutVisionText: "To become the standard AI assistant for planning engineers worldwide, ensuring every project schedule meets the highest quality standards with minimal manual effort.",
+    aboutMissionTitle: "Our Mission",
+    aboutMissionText: "Empower planning teams with intelligent insights that detect risks early, enforce contractual compliance, and facilitate professional communication with contractors.",
+    aboutValuesTitle: "Core Values",
+    aboutValuePrivacy: "Data Privacy",
+    aboutValuePrivacyDesc: "Your schedule data is processed securely.",
+    aboutValueTransparency: "Transparency",
+    aboutValueTransparencyDesc: "Clear and explainable analysis findings.",
+    aboutValueImprovement: "Continuous Improvement",
+    aboutValueImprovementDesc: "Adapting to the latest planning standards.",
+    aboutStoryTitle: "Our Story",
+    aboutStoryText: "Born from the need to reduce the repetitive workload of reviewing hundreds of activities, SchedAI was developed to let planning engineers focus on strategy rather than error-spotting.",
+
+    // General
+    apiKeyError: "API Key is missing. Please check your configuration.",
+    errorOccurred: "An error occurred during analysis.",
+    connectWithUs: "Connect with us",
+    
+    // Contact
+    contactTitle: "Get in Touch",
+    contactDescription: "Have questions about custom integrations or enterprise support? We're here to help.",
+    contactEmailTitle: "Email Us",
+    contactEmailDescription: "For general inquiries and support",
+    contactEmailAddress: "support@schedai.com",
+    contactTelegramTitle: "Telegram Support",
+    contactTelegramDescription: "Chat with our support bot",
+    contactTelegramHandle: "@SchedAI_Bot",
+
+    // Auth
+    login: "Welcome Back",
+    register: "Create Account",
+    fullName: "Full Name",
+    emailAddress: "Email Address",
+    password: "Password",
+    confirmPassword: "Confirm Password",
+    createAccount: "Create Account",
+    dontHaveAccount: "Don't have an account?",
+    alreadyHaveAccount: "Already have an account?",
+    errorFullNameRequired: "Full Name is required",
+    errorInvalidEmail: "Please enter a valid email",
+    errorPasswordLength: "Password must be at least 6 characters",
+    errorPasswordMismatch: "Passwords do not match",
+    registrationSuccess: "Registration successful! Please login.",
+    authRegistrationDisclaimer_p1: "By creating an account, you agree to our",
+    authRegistrationDisclaimer_terms: "Terms of Service",
+    authRegistrationDisclaimer_p2: "and",
+    authRegistrationDisclaimer_privacy: "Privacy Policy",
+    authRegistrationDisclaimer_p3: ".",
+    continueWithGoogle: "Continue with Google",
+    orWithEmail: "Or continue with email",
+    forgotPassword: "Forgot Password?",
+    enterEmailForReset: "Enter your email to reset password",
+    sendResetLink: "Send Reset Link",
+    backToLogin: "Back to Login",
+    resetLinkSent: "Check your email for the reset link!",
+    emailRequiredForReset: "Email is required to reset password",
+    authRequiredTitle: "Authentication Required",
+    authRequiredMessage: "Please sign in to access the expert scheduling assistant.",
+    getStarted: "Get Started",
+    noCreditCardRequired: "No credit card required for free tier.",
+  },
+  [Language.AR]: {
+    title: "SchedAI",
+    navHome: "الرئيسية",
+    navAgent: "مراجعة الجداول",
+    navAbout: "من نحن",
+    navContact: "اتصل بنا",
+    navTerms: "الشروط",
+    navPrivacy: "الخصوصية",
+
+    // Home
+    homeWelcome: "راجع جداولك الزمنية أسرع وبجودة أعلى",
+    homeDescription: "قم برفع ملفات الجدول الزمني (Text/CSV) أو صور المخططات (Gantt Chart)، وسيقوم المساعد الذكي بتحليلها وفق معايير PMC وتوليد تقرير احترافي.",
+    homeAgentTitle: "ابدأ التحليل الآن",
+    homeAgentDesc: "تحليل شامل، اكتشاف عدم التطابق، وتوليد ملاحظات احترافية جاهزة للمشاركة مع المقاول.",
+
+    // PMC Agent Feature
+    agentTitle: "خبير مراجعة الجداول الزمنية",
+    agentDescription: "مساعد ذكي بخبرة PMC لإجراء تقييم شامل للجدول الزمني، وتحديد عدم الامتثال، وتوليد بيانات داعمة للقرار.",
+    inputLabel: "ارفع الجدول أو اسحب الصورة هنا",
+    inputPlaceholder: "أو الصق النص/التقرير هنا...",
+    dragDrop: "اضغط للرفع أو اسحب الملف هنا",
+    dragDropSub: "نقبل ملفات CSV, Text, XML أو صور (Screenshots) من P6/MSP",
+    selectStandard: "اختر معيار المراجعة",
+    analyzeButton: "بدء التحليل الشامل",
+    analyzing: "جاري إجراء التقييم الفني...",
+
+    // Output Sections
+    analysisReport: "الملخص التنفيذي",
+    riskAssessment: "تقييم المخاطر",
+    technicalFindings: "الملاحظات الفنية",
+    recommendations: "التوصيات الاستراتيجية",
+    nonCompliance: "نقاط عدم الالتزام",
+    contractorNote: "مراسلات المقاول الرسمية",
+    copy: "نسخ",
+    copied: "تم النسخ!",
+
+    // About
+    aboutTitle: "عن SchedAI",
+    aboutText: "SchedAI هي أداة متخصصة مصممة لدعم فرق التخطيط في شركات إدارة المشاريع. تعمل الأداة على تسريع عملية المراجعة من خلال الاكتشاف التلقائي لعيوب الجدول الزمني، وضمان الامتثال للمعايير، وصياغة المراسلات المهنية.",
+    aboutVisionTitle: "رؤيتنا",
+    aboutVisionText: "أن نصبح المساعد المعياري لمهندسي التخطيط عالميًا، لضمان أعلى معايير الجودة في الجداول الزمنية بأقل جهد يدوي.",
+    aboutMissionTitle: "مهمتنا",
+    aboutMissionText: "تمكين فرق التخطيط برؤى ذكية تكتشف المخاطر مبكرًا، وتضمن الامتثال التعاقدي، وتسهل التواصل الاحترافي مع المقاولين.",
+    aboutValuesTitle: "قيمنا الجوهرية",
+    aboutValuePrivacy: "خصوصية البيانات",
+    aboutValuePrivacyDesc: "تتم معالجة بيانات جدولك الزمني بأمان تام.",
+    aboutValueTransparency: "الشفافية",
+    aboutValueTransparencyDesc: "نتائج تحليل واضحة وقابلة للتفسير.",
+    aboutValueImprovement: "التحسين المستمر",
+    aboutValueImprovementDesc: "التكيف المستمر مع أحدث معايير التخطيط.",
+    aboutStoryTitle: "قصتنا",
+    aboutStoryText: "نبعت الفكرة من الحاجة لتقليل الجهد المتكرر في مراجعة مئات الأنشطة، ليتمكن مهندس التخطيط من التركيز على الاستراتيجية بدلاً من تصيد الأخطاء.",
+
+    // General
+    apiKeyError: "مفتاح API مفقود.",
+    errorOccurred: "حدث خطأ أثناء التحليل.",
+    connectWithUs: "تواصل معنا",
+    
+    // Contact
+    contactTitle: "تواصل معنا",
+    contactDescription: "لديك استفسارات حول التكامل المخصص أو دعم الشركات؟ نحن هنا للمساعدة.",
+    contactEmailTitle: "راسلنا عبر البريد",
+    contactEmailDescription: "للاستفسارات العامة والدعم",
+    contactEmailAddress: "support@schedai.com",
+    contactTelegramTitle: "دعم تيليجرام",
+    contactTelegramDescription: "تحدث مع بوت الدعم الفني",
+    contactTelegramHandle: "@SchedAI_Bot",
+
+    // Auth
+    login: "تسجيل الدخول",
+    register: "إنشاء حساب",
+    fullName: "الاسم الكامل",
+    emailAddress: "البريد الإلكتروني",
+    password: "كلمة المرور",
+    confirmPassword: "تأكيد كلمة المرور",
+    createAccount: "إنشاء حساب",
+    dontHaveAccount: "ليس لديك حساب؟",
+    alreadyHaveAccount: "لديك حساب بالفعل؟",
+    errorFullNameRequired: "الاسم الكامل مطلوب",
+    errorInvalidEmail: "يرجى إدخال بريد إلكتروني صحيح",
+    errorPasswordLength: "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+    errorPasswordMismatch: "كلمتا المرور غير متطابقتين",
+    registrationSuccess: "تم التسجيل بنجاح! يرجى تسجيل الدخول.",
+    authRegistrationDisclaimer_p1: "بإنشاء حساب، فإنك توافق على",
+    authRegistrationDisclaimer_terms: "شروط الخدمة",
+    authRegistrationDisclaimer_p2: "و",
+    authRegistrationDisclaimer_privacy: "سياسة الخصوصية",
+    authRegistrationDisclaimer_p3: ".",
+    continueWithGoogle: "المتابعة باستخدام Google",
+    orWithEmail: "أو المتابعة عبر البريد الإلكتروني",
+    forgotPassword: "نسيت كلمة المرور؟",
+    enterEmailForReset: "أدخل بريدك الإلكتروني لاستعادة كلمة المرور",
+    sendResetLink: "إرسال رابط الاستعادة",
+    backToLogin: "العودة لتسجيل الدخول",
+    resetLinkSent: "تفقد بريدك الإلكتروني للحصول على الرابط!",
+    emailRequiredForReset: "البريد الإلكتروني مطلوب لاستعادة كلمة المرور",
+    authRequiredTitle: "تسجيل الدخول مطلوب",
+    authRequiredMessage: "يرجى تسجيل الدخول للوصول إلى المساعد الذكي.",
+    getStarted: "ابدأ الآن",
+    noCreditCardRequired: "لا حاجة لبطاقة ائتمان.",
+  },
+};

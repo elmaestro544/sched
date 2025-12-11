@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SchedAI</title>
+    
+    <!-- Import Cairo Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Light Theme (Default) */
+        body {
+            background-color: #f0fdfa; /* teal-50 */
+            color: #0f172a; /* slate-900 */
+            transition: background-color 0.3s ease, color 0.3s ease;
+            font-family: 'Cairo', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0; /* slate-200 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #94a3b8; /* slate-400 */
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #64748b; /* slate-500 */
+        }
+        option {
+            color: #1f2937;
+            background-color: #ffffff;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        /* Dark Theme Styles */
+        .dark body {
+            background-color: #042f2e; /* Teal 950 */
+            background-image: radial-gradient(circle at center, #115e59 0%, #042f2e 100%);
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: #f0fdfa;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #115e59;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: #0d9488;
+            border: 2px solid #115e59;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background-color: #14b8a6;
+        }
+        .dark option {
+            color: #f0fdfa;
+            background-color: #134e4a; /* Teal 900 */
+        }
+
+        /* Print Styles */
+        @media print {
+            @page {
+                margin: 1.5cm;
+                size: auto;
+            }
+            body {
+                background: white !important;
+                background-image: none !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                font-size: 12pt;
+            }
+            
+            /* Hide UI elements */
+            .no-print, header, footer, .fixed, nav, button {
+                display: none !important;
+            }
+            
+            /* Show print elements */
+            .print-only {
+                display: block !important;
+            }
+
+            /* Main Container Reset */
+            .container, .max-w-6xl {
+                max-width: 100% !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* Report Styling */
+            .printable-report {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            /* Card Resets */
+            .printable-report .shadow-lg, 
+            .printable-report .shadow-2xl,
+            .printable-report .shadow-sm {
+                box-shadow: none !important;
+                border: 1px solid #eee !important;
+                page-break-inside: avoid;
+                margin-bottom: 1rem;
+            }
+
+            /* Colors Reset */
+            .printable-report .bg-white, 
+            .printable-report .dark\:bg-card-gradient {
+                background: white !important;
+                color: black !important;
+            }
+
+            /* Text Colors */
+            .printable-report p, 
+            .printable-report h3, 
+            .printable-report h4, 
+            .printable-report li,
+            .printable-report span:not(.badge) {
+                color: #1f2937 !important; /* gray-800 */
+            }
+
+            /* Specific Sections */
+            .printable-report .bg-slate-900, 
+            .printable-report .bg-gradient-to-r {
+                background: #fff !important;
+                border: 2px solid #000 !important;
+                color: black !important;
+            }
+            .printable-report .bg-slate-900 * {
+                color: black !important;
+            }
+
+            /* Recommendation Box */
+            .printable-report .bg-blue-50, 
+            .printable-report .dark\:bg-blue-900\/10 {
+                background-color: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+
+            /* Grid Layout adjustments for print */
+            .grid {
+                display: block !important; /* Often safer to stack in print */
+            }
+            .grid > div {
+                margin-bottom: 1.5rem;
+            }
+            
+            /* Risk Badge */
+            .badge {
+               border: 1px solid #000; 
+               background: #fff !important;
+               color: #000 !important;
+               font-weight: bold;
+            }
+        }
+
+        .print-only {
+            display: none;
+        }
+    </style>
+    <script>
+      tailwind.config = {
+        darkMode: 'class', // Enable class-based dark mode
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Cairo', 'sans-serif'],
+            },
+            colors: {
+              'brand-primary': '#0D9488', // Teal 600 - Primary Action
+              'brand-dark': '#042f2e', // Teal 950 - Deepest Background
+              'brand-light-dark': '#115e59', // Teal 800 - Card Backgrounds
+              'brand-red': '#ef4444',
+              'brand-blue': '#0F766E', // Teal 700 - Accents (Mapped from old Blue)
+              'brand-text': '#f0fdfa', // Teal 50
+              'brand-text-light': '#ccfbf1', // Teal 100
+            },
+            backgroundImage: {
+              'card-gradient': 'linear-gradient(145deg, #115e59 0%, #042f2e 100%)',
+              'input-gradient': 'linear-gradient(145deg, #0f172a 0%, #042f2e 100%)',
+            },
+            backdropBlur: {
+                'xl': '20px',
+            },
+            boxShadow: {
+              'glow-blue': '0 0 20px 0 rgba(20, 184, 166, 0.5)', // Teal glow
+              'glow-red': '0 0 20px 0 rgba(239, 68, 68, 0.4)',
+              'card': '0 10px 25px -5px rgba(4, 47, 46, 0.4), 0 8px 10px -6px rgba(4, 47, 46, 0.4)',
+            }
+          }
+        }
+      }
+    </script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- API Key configuration -->
+    <script src="env.js"></script>
+    
+    <!-- Libraries for Data Analysis Feature -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <script>
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script>
+      // Globally register the datalabels plugin
+      if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+          Chart.register(ChartDataLabels);
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@8.13.5/dist/mermaid.min.js"></script>
+    <script>
+        if (typeof mermaid !== 'undefined') {
+            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        }
+    </script>
+
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+    <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai?run",
+    "@perplexity-ai/perplexity_ai": "https://esm.sh/@perplexity-ai/perplexity_ai?run",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2?run",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+    
+    <script type="module" src="index.js"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
