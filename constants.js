@@ -16,10 +16,70 @@ export const Language = Object.freeze({
 });
 
 export const AI_PROVIDERS = [
-  { id: 'gemini', name: 'Google Gemini', model: 'gemini-2.5-flash', icon: '⚡' },
-  { id: 'openai', name: 'OpenAI GPT-4o', model: 'gpt-4o', icon: '🤖' },
-  { id: 'openrouter', name: 'OpenRouter', model: 'google/gemini-2.0-flash-001', icon: '🔗' },
-  { id: 'perplexity', name: 'Perplexity', model: 'sonar', icon: '🧠' }
+  { 
+    id: 'gemini', 
+    name: 'Google Gemini', 
+    defaultModel: 'gemini-2.5-flash',
+    description: 'Required for default analysis',
+    models: [
+        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+        { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview' },
+        { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
+        { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+        { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' }
+    ],
+    icon: '⚡' 
+  },
+  { 
+    id: 'openai', 
+    name: 'OpenAI GPT-4o', 
+    defaultModel: 'gpt-4o',
+    description: 'Advanced reasoning',
+    models: [
+        { id: 'gpt-4o', name: 'GPT-4o' },
+        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
+    ],
+    icon: '🤖' 
+  },
+  { 
+    id: 'groq', 
+    name: 'Groq (Llama 3)', 
+    defaultModel: 'llama-3.3-70b-versatile',
+    description: 'High-speed Llama 3 inference',
+    models: [
+        { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B' },
+        { id: 'llama-3.1-70b-versatile', name: 'Llama 3.1 70B' },
+        { id: 'llama3-70b-8192', name: 'Llama 3 70B' },
+        { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7b' },
+        { id: 'llama-3.2-90b-vision-preview', name: 'Llama 3.2 90B Vision' }
+    ],
+    icon: '🚀' 
+  },
+  { 
+    id: 'openrouter', 
+    name: 'OpenRouter', 
+    defaultModel: 'google/gemini-2.0-flash-001',
+    description: 'Access to Claude, Llama, etc.',
+    models: [
+        { id: 'google/gemini-2.0-flash-001', name: 'Google Gemini 2.0 Flash' },
+        { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
+        { id: 'anthropic/claude-3-opus', name: 'Claude 3 Opus' },
+        { id: 'meta-llama/llama-3-70b-instruct', name: 'Llama 3 70B' }
+    ],
+    icon: '🔗' 
+  },
+  { 
+    id: 'perplexity', 
+    name: 'Perplexity', 
+    defaultModel: 'sonar', 
+    description: 'Real-time web search capability',
+    models: [
+        { id: 'sonar', name: 'Sonar' },
+        { id: 'sonar-pro', name: 'Sonar Pro' }
+    ],
+    icon: '🧠' 
+  }
 ];
 
 export const PLANNING_STANDARDS = [
@@ -41,7 +101,7 @@ export const STANDARD_DETAILS = {
     criteria: [
       {
         name: { en: "1. Logic", ar: "1. المنطق" },
-        desc: { en: "Incomplete logic. Max 5% of activities can lack predecessors/successors.", ar: "المنطق غير المكتمل. يُسمح بحد أقصى 5% من الأنشطة بدون سابق أو لاحق." }
+        desc: { en: "Incomplete logic. Max 5% of activities can lack predecessors or successors.", ar: "المنطق غير المكتمل. يُسمح بحد أقصى 5% من الأنشطة بدون سابق أو لاحق." }
       },
       {
         name: { en: "2. Leads", ar: "2. التداخلات السلبية (Leads)" },

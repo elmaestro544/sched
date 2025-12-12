@@ -1,45 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { CloseIcon, LockIcon, CheckIcon } from './Shared.js';
+import { AI_PROVIDERS } from '../constants.js';
 
 const KEY_MAPPING = {
     'gemini': 'VITE_API_KEY',
     'openai': 'VITE_OPENAI_API_KEY',
     'openrouter': 'VITE_OPENROUTER_API_KEY',
-    'perplexity': 'VITE_PERPLEXITY_API_KEY'
+    'perplexity': 'VITE_PERPLEXITY_API_KEY',
+    'groq': 'VITE_GROQ_API_KEY'
 };
 
-const PROVIDERS = [
-    { id: 'gemini', name: 'Google Gemini', desc: 'Required for default analysis' },
-    { id: 'openai', name: 'OpenAI (GPT-4)', desc: 'Advanced reasoning' },
-    { id: 'openrouter', name: 'OpenRouter', desc: 'Access to Claude, Llama, etc.' },
-    { id: 'perplexity', name: 'Perplexity', desc: 'Real-time web search capability' }
-];
+const MODEL_KEY_MAPPING = {
+    'gemini': 'VITE_GEMINI_MODEL',
+    'openai': 'VITE_OPENAI_MODEL',
+    'openrouter': 'VITE_OPENROUTER_MODEL',
+    'perplexity': 'VITE_PERPLEXITY_MODEL',
+    'groq': 'VITE_GROQ_MODEL'
+};
 
 const SettingsModal = ({ isOpen, onClose, language }) => {
     const [keys, setKeys] = useState({});
+    const [models, setModels] = useState({});
     const [status, setStatus] = useState('');
 
     useEffect(() => {
         if (isOpen) {
-            // Load existing keys from localStorage, env.js (window.process), or Vite build (import.meta.env)
             const loadedKeys = {};
+            const loadedModels = {};
             const runtimeEnv = (typeof window !== 'undefined' && window.process?.env) ? window.process.env : {};
 
-            Object.keys(KEY_MAPPING).forEach(provider => {
-                const envVar = KEY_MAPPING[provider];
+            AI_PROVIDERS.forEach(provider => {
+                // 1. Load Keys
+                const envVar = KEY_MAPPING[provider.id];
                 let val = null;
 
-                // 1. Check Local Storage
                 if (typeof localStorage !== 'undefined') {
                     val = localStorage.getItem(envVar);
                 }
-
-                // 2. Check Runtime Environment (env.js)
                 if (!val && runtimeEnv[envVar] && !runtimeEnv[envVar].startsWith('__VITE')) {
                     val = runtimeEnv[envVar];
                 }
-
-                // 3. Check Build Environment (import.meta.env)
                 if (!val) {
                     try {
                         if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[envVar]) {
@@ -50,27 +50,54 @@ const SettingsModal = ({ isOpen, onClose, language }) => {
                         }
                     } catch(e) {}
                 }
+                loadedKeys[provider.id] = val || '';
 
-                loadedKeys[provider] = val || '';
+                // 2. Load Models
+                const modelEnvVar = MODEL_KEY_MAPPING[provider.id];
+                let modelVal = null;
+                if (typeof localStorage !== 'undefined') {
+                    modelVal = localStorage.getItem(modelEnvVar);
+                }
+                // Fallback to env or default
+                if (!modelVal && runtimeEnv[modelEnvVar] && !runtimeEnv[modelEnvVar].startsWith('__VITE')) {
+                    modelVal = runtimeEnv[modelEnvVar];
+                }
+                
+                loadedModels[provider.id] = modelVal || provider.defaultModel;
             });
+
             setKeys(loadedKeys);
+            setModels(loadedModels);
             setStatus('');
         }
     }, [isOpen]);
 
     const handleSave = () => {
-        Object.keys(keys).forEach(provider => {
-            const envVar = KEY_MAPPING[provider];
-            const val = keys[provider];
+        // Save Keys
+        Object.keys(keys).forEach(providerId => {
+            const envVar = KEY_MAPPING[providerId];
+            const val = keys[providerId];
             if (val) {
                 localStorage.setItem(envVar, val);
             } else {
                 localStorage.removeItem(envVar);
             }
         });
+
+        // Save Models
+        Object.keys(models).forEach(providerId => {
+            const envVar = MODEL_KEY_MAPPING[providerId];
+            const val = models[providerId];
+            if (val) {
+                localStorage.setItem(envVar, val);
+            } else {
+                localStorage.removeItem(envVar);
+            }
+        });
+
         setStatus('Saved! Reloading...');
         setTimeout(() => {
-            window.location.reload(); // Reload to ensure services pick up new keys
+            window.location.reload(); 
         }, 1000);
     };
 
@@ -92,14 +119,25 @@ const SettingsModal = ({ isOpen, onClose, language }) => {
             ),
             
             React.createElement('p', { className: "text-sm text-slate-500 dark:text-brand-text-light mb-6" }, 
-                "Enter your API keys below. If you have configured them in Coolify/Environment Variables, they will appear here automatically."
+                "Configure your API keys and select preferred models."
             ),
 
             React.createElement('div', { className: "space-y-4 max-h-[60vh] overflow-y-auto pr-2" },
-                PROVIDERS.map(p => (
+                AI_PROVIDERS.map(p => (
                     React.createElement('div', { key: p.id, className: "bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5" },
-                        React.createElement('label', { className: "block text-sm font-bold text-slate-700 dark:text-white mb-1" }, p.name),
-                        React.createElement('p', { className: "text-xs text-slate-500 dark:text-brand-text-light mb-2" }, p.desc),
+                        React.createElement('div', { className: "flex justify-between items-center mb-2" },
+                            React.createElement('label', { className: "block text-sm font-bold text-slate-700 dark:text-white" }, p.name),
+                            React.createElement('select', {
+                                value: models[p.id] || p.defaultModel,
+                                onChange: (e) => setModels({ ...models, [p.id]: e.target.value }),
+                                className: "bg-white dark:bg-black/20 text-xs border border-slate-200 dark:border-white/10 rounded px-2 py-1 text-slate-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                            },
+                                p.models?.map(m => (
+                                    React.createElement('option', { key: m.id, value: m.id }, m.name)
+                                ))
+                            )
+                        ),
+                        React.createElement('p', { className: "text-xs text-slate-500 dark:text-brand-text-light mb-2" }, p.description),
                         React.createElement('div', { className: "relative" },
                             React.createElement('div', { className: "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" },
                                 React.createElement(LockIcon, { className: "h-4 w-4 text-slate-400" })

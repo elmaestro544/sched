@@ -12,15 +12,23 @@ window.process.env = {
   // --- Google Gemini ---
   // Primary API Key for Chat, Research, Analysis
   VITE_API_KEY: '__VITE_API_KEY__',
+  VITE_GEMINI_MODEL: '__VITE_GEMINI_MODEL__',
 
   // --- OpenAI ---
   VITE_OPENAI_API_KEY: '__VITE_OPENAI_API_KEY__',
+  VITE_OPENAI_MODEL: '__VITE_OPENAI_MODEL__',
 
   // --- OpenRouter ---
   VITE_OPENROUTER_API_KEY: '__VITE_OPENROUTER_API_KEY__',
+  VITE_OPENROUTER_MODEL: '__VITE_OPENROUTER_MODEL__',
 
   // --- Perplexity ---
   VITE_PERPLEXITY_API_KEY: '__VITE_PERPLEXITY_API_KEY__',
+  VITE_PERPLEXITY_MODEL: '__VITE_PERPLEXITY_MODEL__',
+
+  // --- Groq ---
+  VITE_GROQ_API_KEY: '__VITE_GROQ_API_KEY__',
+  VITE_GROQ_MODEL: '__VITE_GROQ_MODEL__',
 
   // --- Supabase ---
   // Required for Authentication & Database

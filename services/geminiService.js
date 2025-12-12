@@ -29,17 +29,37 @@ const getKey = (keyName) => {
     return null;
 };
 
+// Helper to get configured model
+const getModel = (providerId) => {
+    const provider = AI_PROVIDERS.find(p => p.id === providerId);
+    if (!provider) return 'gemini-2.5-flash'; // Fallback
+    
+    let keyName = '';
+    switch(providerId) {
+        case 'gemini': keyName = 'VITE_GEMINI_MODEL'; break;
+        case 'openai': keyName = 'VITE_OPENAI_MODEL'; break;
+        case 'groq': keyName = 'VITE_GROQ_MODEL'; break;
+        case 'openrouter': keyName = 'VITE_OPENROUTER_MODEL'; break;
+        case 'perplexity': keyName = 'VITE_PERPLEXITY_MODEL'; break;
+    }
+    
+    const configuredModel = getKey(keyName);
+    return configuredModel || provider.defaultModel;
+};
+
 // Check if *any* valid key exists for the Home screen check
 export const isAnyModelConfigured = () => {
     return !!getKey('VITE_API_KEY') || 
            !!getKey('VITE_OPENAI_API_KEY') || 
            !!getKey('VITE_OPENROUTER_API_KEY') || 
-           !!getKey('VITE_PERPLEXITY_API_KEY');
+           !!getKey('VITE_PERPLEXITY_API_KEY') ||
+           !!getKey('VITE_GROQ_API_KEY');
 };
 
 export const getFirstAvailableProvider = () => {
     if (getKey('VITE_API_KEY')) return 'gemini';
     if (getKey('VITE_OPENAI_API_KEY')) return 'openai';
+    if (getKey('VITE_GROQ_API_KEY')) return 'groq';
     if (getKey('VITE_OPENROUTER_API_KEY')) return 'openrouter';
     if (getKey('VITE_PERPLEXITY_API_KEY')) return 'perplexity';
     return 'gemini'; // Default fallback
@@ -49,6 +69,7 @@ export const hasKeyForProvider = (providerId) => {
     switch(providerId) {
         case 'gemini': return !!getKey('VITE_API_KEY');
         case 'openai': return !!getKey('VITE_OPENAI_API_KEY');
+        case 'groq': return !!getKey('VITE_GROQ_API_KEY');
         case 'openrouter': return !!getKey('VITE_OPENROUTER_API_KEY');
         case 'perplexity': return !!getKey('VITE_PERPLEXITY_API_KEY');
         default: return false;
@@ -128,29 +149,38 @@ const cleanAndParseJSON = (str) => {
     }
 };
 
-// --- Generic OpenAI Compatible Call (For OpenAI, OpenRouter, Perplexity) ---
+// --- Generic OpenAI Compatible Call (For OpenAI, OpenRouter, Perplexity, Groq) ---
 const callOpenAICompatible = async (providerId, systemPrompt, userContent, isImage) => {
     const providerConfig = AI_PROVIDERS.find(p => p.id === providerId);
     if (!providerConfig) throw new Error("Invalid Provider");
 
     let apiKey, baseUrl, model;
     
+    // Get user configured model or default
+    model = getModel(providerId);
+    
     switch(providerId) {
         case 'openai':
             apiKey = getKey('VITE_OPENAI_API_KEY');
             baseUrl = 'https://api.openai.com/v1/chat/completions';
-            model = 'gpt-4o';
+            break;
+        case 'groq':
+            apiKey = getKey('VITE_GROQ_API_KEY');
+            baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
+            // Groq Vision Check: If user is sending an image but selected a text-only model, 
+            // force the vision model to avoid failure.
+            if (isImage && !model.includes('vision')) {
+                 model = 'llama-3.2-90b-vision-preview';
+            }
             break;
         case 'openrouter':
             apiKey = getKey('VITE_OPENROUTER_API_KEY');
             baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
-            model = 'google/gemini-2.0-flash-001'; 
             break;
         case 'perplexity':
             apiKey = getKey('VITE_PERPLEXITY_API_KEY');
             baseUrl = 'https://api.perplexity.ai/chat/completions';
-            model = 'sonar'; 
-            if (isImage) throw new Error("Perplexity does not support image analysis. Please choose Gemini or OpenAI.");
+            if (isImage) throw new Error("Perplexity does not support image analysis. Please choose Gemini, OpenAI, or Groq.");
             break;
         default:
             throw new Error("Provider not implemented");
@@ -206,6 +236,26 @@ export const analyzeSchedule = async (inputData, isImage, standardId, language, 
     const standardObj = PLANNING_STANDARDS.find(s => s.id === standardId);
     const standardName = standardObj ? standardObj.name.en : "General Project Management Best Practices";
 
+    // Detailed DCMA 14-Point Instruction
+    const dcmaInstruction = `
+    If evaluating against 'DCMA 14-Point Assessment', you MUST populate the 'dcmaAnalysis' array with exactly these 14 metrics (do not omit any):
+    1. Logic (Missing Logic) - Target < 5%
+    2. Leads (Negative Lags) - Target 0%
+    3. Lags (Positive Lags) - Target < 5%
+    4. Relationship Types (FS should be > 90%)
+    5. Hard Constraints - Target < 5%
+    6. High Float (> 44 days) - Target < 5%
+    7. Negative Float - Target 0%
+    8. High Duration (> 44 days) - Target < 5%
+    9. Invalid Dates (Forecasts in past/Actuals in future) - Target 0%
+    10. Resources (Missing resources) - Target 0%
+    11. Missed Tasks (Finished late) - Target < 5%
+    12. Critical Path Test (Pass/Fail)
+    13. CPLI (Critical Path Length Index) - Target > 1.0
+    14. BEI (Baseline Execution Index) - Target > 1.0
+    For each metric, provide a 'value' (number), 'target' (number), 'status' (PASS/FAIL), 'found' (count), and 'total' (count).
+    `;
+
     // Updated Instruction: Mandate Dual Language Output & Specific Standard & Correspondence Direction
     const systemInstruction = `You are a Seasoned Expert in Project Management and Scheduling Quality Assurance (PMC).
     Your task is to analyze schedule data and generate a structured dataset for a PowerBI-style dashboard.
@@ -224,8 +274,7 @@ export const analyzeSchedule = async (inputData, isImage, standardId, language, 
     ### Objectives:
     1. **Overview Stats**: Extract or estimate total activities, critical activities, duration, and data dates.
     2. **Compliance Check**: Evaluate the schedule specifically against **${standardName}**. 
-       - If ${standardName} is 'DCMA 14-Point', perform the standard 14 point check.
-       - If it is 'Saudi Aramco' or 'FIDIC', highlight clauses or requirements specific to those standards.
+       ${standardId === 'dcma' ? dcmaInstruction : `- If it is 'Saudi Aramco' or 'FIDIC', highlight clauses or requirements specific to those standards.`}
        - POPULATE 'dcmaAnalysis' ARRAY WITH SPECIFIC CHECKS RELEVANT TO ${standardName}.
     3. **Activity Data**: Extract specific activities mentioned. If specific rows are not provided, GENERATE 10-15 REPRESENTATIVE ACTIVITIES based on the findings.
 
@@ -288,7 +337,8 @@ export const analyzeSchedule = async (inputData, isImage, standardId, language, 
             
             // Create client on demand to ensure we use the latest key from LocalStorage
             const client = new GoogleGenAI({ apiKey: currentKey });
-            
+            const selectedModel = getModel('gemini');
+
             let parts = [];
             if (isImage) {
                 const base64Data = inputData.includes('base64,') ? inputData.split('base64,')[1] : inputData;
@@ -301,7 +351,7 @@ export const analyzeSchedule = async (inputData, isImage, standardId, language, 
             }
 
             const result = await fetchWithRetry(() => client.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: selectedModel,
                 contents: { parts },
                 config: { 
                     systemInstruction,
