@@ -1,45 +1,68 @@
 import React, { useState, useRef } from 'react';
-import { i18n, PLANNING_STANDARDS, Language } from '../constants.js';
+import { i18n, PLANNING_STANDARDS, Language, AI_PROVIDERS } from '../constants.js';
 import * as apiService from '../services/geminiService.js';
-import { Spinner, CopyIcon, UploadIcon, CheckIcon, FocusIcon, PrintIcon, Logo } from './Shared.js';
+import { Spinner, CopyIcon, UploadIcon, CheckIcon, FocusIcon, PrintIcon, Logo, SettingsIcon } from './Shared.js';
+import ReportDashboard from './ReportDashboard.js';
+import StandardCriteriaModal from './StandardCriteriaModal.js';
 
-const PMCAgent = ({ language }) => {
+const PMCAgent = ({ language, onOpenSettings }) => {
     const t = i18n[language];
     const [textInput, setTextInput] = useState('');
     const [selectedStandard, setSelectedStandard] = useState('general');
+    // Initialize with the first available provider (e.g. OpenAI) if Gemini is missing
+    const [selectedProvider, setSelectedProvider] = useState(() => apiService.getFirstAvailableProvider());
     const [result, setResult] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [copiedNote, setCopiedNote] = useState(false);
     const [filePreview, setFilePreview] = useState(null);
     const [isImage, setIsImage] = useState(false);
+    const [errorMsg, setErrorMsg] = useState(null);
     const fileInputRef = useRef(null);
     const [isDragOver, setIsDragOver] = useState(false);
+    
+    // State for the Criteria Modal
+    const [isCriteriaModalOpen, setIsCriteriaModalOpen] = useState(false);
 
-    const handleAnalyze = async () => {
+    const handleAnalyze = async (standardOverride = null) => {
         if ((!textInput.trim() && !filePreview) || isLoading) return;
         
+        setErrorMsg(null);
+
+        // Pre-check for API key to avoid round trip error
+        if (!apiService.hasKeyForProvider(selectedProvider)) {
+            const providerName = AI_PROVIDERS.find(p => p.id === selectedProvider)?.name || selectedProvider;
+            setErrorMsg(`Missing API Key for ${providerName}. Please configure it in Settings.`);
+            // Automatically open settings if possible, or user clicks button
+            return;
+        }
+
         setIsLoading(true);
-        setResult(null);
+        // We do not clear the result immediately to allow for a smooth transition or "updating" state
+        // if it's a re-analysis. However, the overlay will cover everything.
         
+        const standardToUse = standardOverride || selectedStandard;
+
         try {
             // Priority: File content > Text Input
             const inputData = filePreview || textInput;
-            const analysis = await apiService.analyzeSchedule(inputData, isImage, selectedStandard, language);
+            const analysis = await apiService.analyzeSchedule(inputData, isImage, standardToUse, language, selectedProvider);
             setResult(analysis);
         } catch (error) {
             console.error("Analysis Error", error);
-            alert(t.errorOccurred);
+            if (error.message === 'DAILY_QUOTA_EXCEEDED') {
+                setErrorMsg(language === Language.AR 
+                    ? "⚠️ لقد استنفدت رصيد التحليل المجاني لهذا اليوم. يرجى المحاولة غداً أو استخدام مزود آخر."
+                    : "⚠️ You have reached your daily free analysis limit. Please try again tomorrow or switch providers.");
+            } else {
+                setErrorMsg(error.message);
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleCopyNote = () => {
-        if (result?.contractorNote) {
-            navigator.clipboard.writeText(result.contractorNote);
-            setCopiedNote(true);
-            setTimeout(() => setCopiedNote(false), 2000);
-        }
+    const handleStandardChange = (newStandard) => {
+        setSelectedStandard(newStandard);
+        handleAnalyze(newStandard);
     };
 
     const processFile = (file) => {
@@ -78,15 +101,22 @@ const PMCAgent = ({ language }) => {
         processFile(e.dataTransfer.files?.[0]); 
     };
 
-    const getRiskColor = (level) => {
-        const l = level?.toLowerCase();
-        if (l === 'high') return 'text-red-600 bg-red-100 border-red-200';
-        if (l === 'medium') return 'text-yellow-600 bg-yellow-100 border-yellow-200';
-        return 'text-teal-600 bg-teal-100 border-teal-200';
-    };
+    return React.createElement('div', { className: "max-w-7xl mx-auto pb-12 animate-fade-in printable-report relative" },
+        // --- PRINT ONLY HEADER (Minimal, efficient) ---
+        React.createElement('div', { className: "print-only border-b border-black mb-4 pb-2" },
+            React.createElement('div', { className: "flex justify-between items-center" },
+                React.createElement('div', { className: "flex items-center gap-2" },
+                    React.createElement(Logo, { className: "h-8 w-auto grayscale" }), // Grayscale logo for print
+                    React.createElement('h1', { className: "text-xl font-bold uppercase tracking-tight" }, "Schedule Analysis Report")
+                ),
+                React.createElement('div', { className: "text-right text-xs" },
+                    React.createElement('p', null, `Date: ${new Date().toLocaleDateString()}`),
+                    React.createElement('p', null, `Std: ${PLANNING_STANDARDS.find(s => s.id === selectedStandard)?.name.en || 'General'}`)
+                )
+            )
+        ),
 
-    return React.createElement('div', { className: "max-w-6xl mx-auto pb-12 animate-fade-in printable-report" },
-        // Header
+        // Screen Header (Hidden on Print)
         React.createElement('div', { className: "text-center mb-10 no-print" },
             React.createElement('div', { className: "inline-block p-3 rounded-2xl bg-teal-100 dark:bg-teal-900/30 mb-4" },
                  React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-10 w-10 text-brand-primary", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" },
@@ -97,12 +127,25 @@ const PMCAgent = ({ language }) => {
             React.createElement('p', { className: "text-lg text-slate-500 dark:text-brand-text-light max-w-2xl mx-auto" }, t.agentDescription)
         ),
 
-        // Input Section
-        React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-12 gap-8 no-print" },
-            // Left Sidebar: Standards
+        // Input Section (Hidden if result is present, unless we are just re-analyzing in background)
+        (!result || isLoading && !result) && React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-12 gap-8 no-print mb-12" },
+            // Left Sidebar: Configuration
             React.createElement('div', { className: "lg:col-span-4 space-y-6" },
+                // Standard Selection
                 React.createElement('div', { className: "bg-white dark:bg-card-gradient p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-lg" },
-                    React.createElement('h3', { className: "text-lg font-bold text-slate-900 dark:text-brand-text mb-4" }, t.selectStandard),
+                    React.createElement('div', { className: "flex justify-between items-center mb-4" },
+                        React.createElement('h3', { className: "text-lg font-bold text-slate-900 dark:text-brand-text" }, t.selectStandard),
+                        React.createElement('button', {
+                            onClick: () => setIsCriteriaModalOpen(true),
+                            className: "text-brand-primary hover:text-teal-700 bg-teal-50 dark:bg-teal-900/30 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 transition-colors",
+                            title: "View Criteria Details"
+                        },
+                            React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-4 w-4", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" },
+                                React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" })
+                            ),
+                            language === Language.AR ? "عرض المعايير" : "View Criteria"
+                        )
+                    ),
                     React.createElement('div', { className: "space-y-3" },
                         PLANNING_STANDARDS.map(std => (
                             React.createElement('button', {
@@ -116,19 +159,25 @@ const PMCAgent = ({ language }) => {
                         ))
                     )
                 ),
-                
-                // Info Card
-                React.createElement('div', { className: "bg-teal-50 dark:bg-teal-900/10 p-5 rounded-2xl border border-teal-100 dark:border-teal-800/30" },
-                    React.createElement('h4', { className: "text-teal-800 dark:text-teal-300 font-bold mb-2 flex items-center gap-2" },
-                        React.createElement('svg', { className: "w-5 h-5", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" },
-                            React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" })
-                        ),
-                        "Expert Tip"
-                    ),
-                    React.createElement('p', { className: "text-sm text-teal-700 dark:text-teal-200" }, 
-                        "Upload Gantt charts or Schedule Logs. The expert model will perform a deep forensic analysis of logic, float, and constraints."
+                // AI Provider Selection
+                React.createElement('div', { className: "bg-white dark:bg-card-gradient p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-lg" },
+                    React.createElement('h3', { className: "text-lg font-bold text-slate-900 dark:text-brand-text mb-4" }, t.selectProvider),
+                    React.createElement('div', { className: "space-y-3" },
+                        AI_PROVIDERS.map(p => (
+                            React.createElement('button', {
+                                key: p.id,
+                                onClick: () => { setSelectedProvider(p.id); setErrorMsg(null); },
+                                className: `w-full text-left p-3 rounded-lg transition-all border flex items-center justify-between group ${selectedProvider === p.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-brand-text-light border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:shadow-sm'}`
+                            },
+                                React.createElement('div', { className: "flex items-center gap-2" },
+                                    React.createElement('span', null, p.icon),
+                                    React.createElement('span', { className: "font-semibold" }, p.name)
+                                ),
+                                selectedProvider === p.id && React.createElement(CheckIcon, { className: "h-5 w-5 text-white" })
+                            )
+                        ))
                     )
-                )
+                ),
             ),
 
             // Right Main Area: Upload & Analysis
@@ -178,9 +227,27 @@ const PMCAgent = ({ language }) => {
                         placeholder: t.inputPlaceholder,
                         className: "flex-grow w-full p-5 bg-transparent border-none resize-none focus:ring-0 text-slate-800 dark:text-brand-text-light h-40 font-mono text-sm",
                     }),
+                    
+                    // Error Message Display
+                    errorMsg && React.createElement('div', { className: "px-5 py-2" },
+                        React.createElement('div', { className: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 p-3 rounded-lg text-sm border border-red-200 dark:border-red-800 flex items-center justify-between gap-2" },
+                            React.createElement('div', { className: "flex items-center gap-2" },
+                                React.createElement('svg', {className: "w-5 h-5 flex-shrink-0", fill:"none", viewBox:"0 0 24 24", stroke:"currentColor"}, React.createElement('path', {strokeLinecap:"round", strokeLinejoin:"round", strokeWidth:2, d:"M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"})),
+                                React.createElement('span', null, errorMsg)
+                            ),
+                            (errorMsg.includes('configure') || errorMsg.includes('Settings') || errorMsg.includes('Key')) && React.createElement('button', {
+                                onClick: onOpenSettings,
+                                className: "bg-red-100 hover:bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-100 px-3 py-1 rounded-md text-xs font-bold transition-colors flex items-center gap-1"
+                            },
+                                React.createElement(SettingsIcon, { className: "w-3 h-3" }),
+                                "Settings"
+                            )
+                        )
+                    ),
+
                     React.createElement('div', { className: "p-4 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 flex justify-end" },
                         React.createElement('button', {
-                            onClick: handleAnalyze,
+                            onClick: () => handleAnalyze(null), // Standard check
                             disabled: isLoading || (!textInput.trim() && !filePreview),
                             className: "bg-brand-primary hover:bg-teal-600 text-white font-bold py-3 px-8 rounded-full transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand-primary/20 transform hover:-translate-y-1"
                         },
@@ -192,136 +259,89 @@ const PMCAgent = ({ language }) => {
             )
         ),
 
-        // Results Section
-        result && React.createElement('div', { className: "mt-12 space-y-8 animate-fade-in-up" },
-            
-            // Print Report Button (Visible on screen)
-            React.createElement('div', { className: "flex justify-end no-print" },
-                 React.createElement('button', {
-                    onClick: () => window.print(),
-                    className: "flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md"
-                },
-                    React.createElement(PrintIcon, { className: "w-5 h-5" }),
-                    "Print Report"
-                )
-            ),
-
-            // Print Header (Visible only in print)
-            React.createElement('div', { className: "print-only mb-8" },
-                 React.createElement('div', { className: "flex items-center gap-4 mb-4" },
-                    React.createElement(Logo, { className: "h-16 w-auto" }),
-                    React.createElement('div', null,
-                        React.createElement('h1', { className: "text-3xl font-bold text-black" }, "Schedule Quality Assessment Report"),
-                        React.createElement('p', { className: "text-gray-600" }, "Generated by SchedAI PMC Agent")
-                    )
-                 ),
-                 React.createElement('div', { className: "border-b-2 border-black mb-4" }),
-                 React.createElement('p', { className: "text-sm text-gray-800 mb-6" }, 
-                    React.createElement('strong', null, "Date: "), new Date().toLocaleDateString(),
-                    React.createElement('span', { className: "mx-4" }, "|"),
-                    React.createElement('strong', null, "Standard: "), PLANNING_STANDARDS.find(s => s.id === selectedStandard)?.name.en || 'General'
-                 )
-            ),
-            
-            // 1. Executive Summary & Findings Grid
-            React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-8" },
-                // Summary Card
-                React.createElement('div', { className: "bg-white dark:bg-card-gradient p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-lg flex flex-col" },
-                    React.createElement('h3', { className: "text-xl font-bold text-brand-blue mb-4 flex items-center gap-3 border-b border-slate-100 dark:border-white/10 pb-3" }, 
-                        React.createElement('div', { className: "bg-brand-primary/10 p-2 rounded-lg" },
-                            React.createElement('svg', { className: "w-5 h-5 text-brand-primary", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" }))
-                        ),
-                        t.analysisReport
-                    ),
-                    React.createElement('p', { className: "text-slate-700 dark:text-brand-text-light mb-6 leading-relaxed" }, result.summary),
-                    
-                    // Risk Assessment Section (Decision Support)
-                    result.riskLevel && React.createElement('div', { className: `mt-auto p-4 rounded-xl border ${getRiskColor(result.riskLevel)}` },
-                        React.createElement('div', { className: "flex justify-between items-center mb-2" },
-                            React.createElement('h4', { className: "font-bold" }, t.riskAssessment),
-                            React.createElement('span', { className: "font-extrabold px-3 py-1 rounded-full bg-white/50 text-sm uppercase badge" }, result.riskLevel)
-                        ),
-                        React.createElement('p', { className: "text-sm" }, result.riskAssessment)
-                    )
+        // Unified Loading Overlay for both Initial and Re-analysis
+        isLoading && React.createElement('div', { className: "fixed inset-0 bg-slate-900/50 dark:bg-black/70 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in" },
+            React.createElement('div', { className: "bg-white dark:bg-card-gradient p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-100 dark:border-white/10 max-w-sm w-full mx-4 relative overflow-hidden" },
+                 // Subtle background shimmer
+                 React.createElement('div', { className: "absolute inset-0 bg-gradient-to-tr from-brand-primary/5 to-transparent pointer-events-none" }),
+                 
+                 // Animated Pulse Ring around Spinner
+                React.createElement('div', { className: "relative mb-6" },
+                    React.createElement('div', { className: "absolute inset-0 bg-brand-primary/20 rounded-full animate-ping" }),
+                    React.createElement(Spinner, { size: "12" })
                 ),
-
-                // Non-Compliance & Findings
-                React.createElement('div', { className: "space-y-6" },
-                     // Technical Findings
-                     React.createElement('div', { className: "bg-white dark:bg-card-gradient p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-lg" },
-                        React.createElement('h4', { className: "font-bold text-slate-900 dark:text-brand-text mb-3 flex items-center gap-2" }, 
-                            React.createElement(FocusIcon, { className: "w-5 h-5 text-brand-primary" }),
-                            t.technicalFindings
-                        ),
-                        React.createElement('ul', { className: "space-y-3" },
-                            result.findings.map((item, idx) => (
-                                React.createElement('li', { key: idx, className: "flex items-start gap-3 text-sm text-slate-600 dark:text-brand-text-light bg-slate-50 dark:bg-white/5 p-3 rounded-lg" },
-                                    React.createElement('span', { className: "text-brand-primary font-bold mt-0.5" }, "•"),
-                                    item
-                                )
-                            ))
-                        )
-                    ),
-                    // Non Compliance
-                    React.createElement('div', { className: "bg-white dark:bg-card-gradient p-6 rounded-2xl border border-red-100 dark:border-red-900/30 shadow-lg" },
-                        React.createElement('h3', { className: "text-lg font-bold text-brand-red mb-3 flex items-center gap-2" }, 
-                             React.createElement('svg', { className: "w-5 h-5", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" })),
-                            t.nonCompliance
-                        ),
-                        React.createElement('ul', { className: "space-y-2" },
-                            result.nonCompliance.map((item, idx) => (
-                                React.createElement('li', { key: idx, className: "flex items-start gap-3 text-sm" },
-                                    React.createElement('svg', { className: "w-4 h-4 text-brand-red flex-shrink-0 mt-0.5", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" },
-                                        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M6 18L18 6M6 6l12 12" })
-                                    ),
-                                    React.createElement('span', { className: "text-slate-800 dark:text-brand-text" }, item)
-                                )
-                            ))
-                        )
-                    )
-                )
-            ),
-
-            // 2. Recommendations (New Section)
-            result.recommendations && React.createElement('div', { className: "bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/20" },
-                React.createElement('h3', { className: "text-xl font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2" },
-                    React.createElement('svg', { className: "w-6 h-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" })),
-                    t.recommendations
+                
+                // Dynamic Text
+                React.createElement('h3', { className: "text-xl font-bold text-slate-900 dark:text-white text-center mb-2" }, 
+                    result 
+                        ? (language === Language.AR ? "جاري تحديث المعايير..." : "Updating Standards...") 
+                        : (language === Language.AR ? "جاري تحليل الجدول..." : "Analyzing Schedule...")
                 ),
-                React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
-                    result.recommendations.map((rec, idx) => (
-                        React.createElement('div', { key: idx, className: "flex items-start gap-3 bg-white dark:bg-card-gradient p-4 rounded-xl shadow-sm" },
-                            React.createElement('span', { className: "font-bold text-blue-500 text-lg" }, idx + 1),
-                            React.createElement('p', { className: "text-slate-700 dark:text-brand-text-light text-sm" }, rec)
-                        )
-                    ))
-                )
-            ),
-
-            // 3. Contractor Note
-            React.createElement('div', { className: "bg-slate-900 text-slate-100 p-1 rounded-2xl shadow-2xl" },
-                React.createElement('div', { className: "bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-8 border border-slate-700 relative overflow-hidden" },
-                    React.createElement('div', { className: "absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl" }),
-                    
-                    React.createElement('div', { className: "flex justify-between items-center mb-6 relative z-10" },
-                        React.createElement('h3', { className: "text-xl font-bold text-white flex items-center gap-3" },
-                            React.createElement('svg', { className: "w-6 h-6 text-brand-primary", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }, React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" })),
-                            t.contractorNote
-                        ),
-                        React.createElement('button', {
-                            onClick: handleCopyNote,
-                            className: "flex items-center gap-2 text-xs font-bold bg-white/10 hover:bg-white/20 py-2 px-4 rounded-full transition-colors no-print"
-                        },
-                            React.createElement(CopyIcon, { className: "w-4 h-4" }),
-                            copiedNote ? t.copied : t.copy
-                        )
-                    ),
-                    React.createElement('div', { className: "font-mono text-sm leading-relaxed whitespace-pre-wrap bg-black/30 p-6 rounded-xl border border-white/10 relative z-10 text-slate-300" },
-                        result.contractorNote
-                    )
+                React.createElement('p', { className: "text-slate-500 dark:text-brand-text-light text-center text-sm" }, 
+                     language === Language.AR 
+                        ? "يقوم المساعد الذكي بمراجعة البيانات، يرجى الانتظار..." 
+                        : "AI Assistant is reviewing the data, please wait..."
                 )
             )
-        )
+        ),
+        
+        // Results Section
+        result && !isLoading && React.createElement(React.Fragment, null,
+             React.createElement('div', { className: "flex flex-col sm:flex-row justify-between items-center mb-6 no-print gap-4" },
+                 
+                 // Left Side: Standard Switcher
+                 React.createElement('div', { className: "flex items-center gap-3 bg-white dark:bg-brand-light-dark p-2 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm" },
+                    React.createElement('span', { className: "text-sm font-bold text-slate-500 dark:text-brand-text-light px-2" }, 
+                        language === Language.AR ? "معيار المراجعة:" : "Review Standard:"
+                    ),
+                    React.createElement('select', {
+                        value: selectedStandard,
+                        onChange: (e) => handleStandardChange(e.target.value),
+                        className: "bg-slate-100 dark:bg-black/20 text-slate-800 dark:text-white text-sm font-semibold rounded-lg p-2 border-none focus:ring-2 focus:ring-brand-primary cursor-pointer outline-none"
+                    },
+                        PLANNING_STANDARDS.map(std => 
+                            React.createElement('option', { key: std.id, value: std.id }, 
+                                language === Language.AR ? std.name.ar : std.name.en
+                            )
+                        )
+                    ),
+                    // Info Button for Results View
+                    React.createElement('button', {
+                        onClick: () => setIsCriteriaModalOpen(true),
+                        className: "p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 transition-colors text-brand-primary",
+                        title: "Criteria Info"
+                    },
+                        React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-5 w-5", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" },
+                            React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" })
+                        )
+                    )
+                 ),
+
+                 // Right Side: Action Buttons
+                 React.createElement('div', { className: "flex gap-4" },
+                    React.createElement('button', {
+                        onClick: () => { setResult(null); setTextInput(''); setFilePreview(null); setErrorMsg(null); },
+                        className: "text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white font-medium transition-colors"
+                    }, "New Analysis"),
+                     React.createElement('button', {
+                        onClick: () => window.print(),
+                        className: "flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md"
+                    },
+                        React.createElement(PrintIcon, { className: "w-5 h-5" }),
+                        "Print Report"
+                    )
+                )
+            ),
+            React.createElement(ReportDashboard, { data: result, language: language, onUpdate: (newData) => setResult(newData) })
+        ),
+
+        // Criteria Modal Instance
+        React.createElement(StandardCriteriaModal, {
+            isOpen: isCriteriaModalOpen,
+            onClose: () => setIsCriteriaModalOpen(false),
+            standardId: selectedStandard,
+            language: language
+        })
     );
 };
 

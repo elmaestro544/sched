@@ -1,3 +1,4 @@
+
 import { CheckIcon } from './components/Shared.js';
 
 export const AppView = Object.freeze({
@@ -14,6 +15,13 @@ export const Language = Object.freeze({
   AR: 'ar',
 });
 
+export const AI_PROVIDERS = [
+  { id: 'gemini', name: 'Google Gemini', model: 'gemini-2.5-flash', icon: '⚡' },
+  { id: 'openai', name: 'OpenAI GPT-4o', model: 'gpt-4o', icon: '🤖' },
+  { id: 'openrouter', name: 'OpenRouter', model: 'google/gemini-2.0-flash-001', icon: '🔗' },
+  { id: 'perplexity', name: 'Perplexity', model: 'sonar', icon: '🧠' }
+];
+
 export const PLANNING_STANDARDS = [
   { id: 'dcma', name: { en: 'DCMA 14-Point Assessment', ar: 'تقييم DCMA (14 نقطة)' } },
   { id: 'aramco', name: { en: 'Saudi Aramco Schedule Standards', ar: 'معايير أرامكو السعودية' } },
@@ -21,6 +29,179 @@ export const PLANNING_STANDARDS = [
   { id: 'pmi', name: { en: 'PMI Scheduling Practice', ar: 'ممارسات الجدولة (PMI)' } },
   { id: 'general', name: { en: 'General Best Practices', ar: 'أفضل الممارسات العامة' } }
 ];
+
+// --- Detailed Criteria for Modal ---
+export const STANDARD_DETAILS = {
+  dcma: {
+    title: { en: "DCMA 14-Point Assessment", ar: "تقييم وكالة إدارة عقود الدفاع (14 نقطة)" },
+    description: { 
+      en: "A standard industry framework used to evaluate the quality and structural integrity of a project schedule.",
+      ar: "إطار عمل قياسي في الصناعة يستخدم لتقييم الجودة والسلامة الهيكلية للجدول الزمني للمشروع."
+    },
+    criteria: [
+      {
+        name: { en: "1. Logic", ar: "1. المنطق" },
+        desc: { en: "Incomplete logic. Max 5% of activities can lack predecessors/successors.", ar: "المنطق غير المكتمل. يُسمح بحد أقصى 5% من الأنشطة بدون سابق أو لاحق." }
+      },
+      {
+        name: { en: "2. Leads", ar: "2. التداخلات السلبية (Leads)" },
+        desc: { en: "Negative lags (Leads) should not be used. Target 0%.", ar: "يجب عدم استخدام التداخلات السلبية. الهدف 0%." }
+      },
+      {
+        name: { en: "3. Lags", ar: "3. التداخلات الإيجابية (Lags)" },
+        desc: { en: "Lags should be minimized. Max 5% of relationships.", ar: "يجب تقليل التداخلات الإيجابية. الحد الأقصى 5% من العلاقات." }
+      },
+      {
+        name: { en: "4. Relationship Types", ar: "4. أنواع العلاقات" },
+        desc: { en: "Finish-to-Start (FS) should be dominant (>90%). Minimize SS/FF/SF.", ar: "يجب أن تكون علاقة النهاية-للبداية (FS) هي السائدة (>90%)." }
+      },
+      {
+        name: { en: "5. Hard Constraints", ar: "5. القيود الصارمة" },
+        desc: { en: "Constraints that prevent logic from driving dates (e.g., Must Finish On). Max 5%.", ar: "القيود التي تمنع المنطق من تحديد التواريخ (مثل 'يجب أن ينتهي في'). الحد الأقصى 5%." }
+      },
+      {
+        name: { en: "6. High Float", ar: "6. السماحية العالية" },
+        desc: { en: "Activities with total float > 44 working days. Max 5%.", ar: "الأنشطة ذات السماحية الكلية > 44 يوم عمل. الحد الأقصى 5%." }
+      },
+      {
+        name: { en: "7. Negative Float", ar: "7. السماحية السالبة" },
+        desc: { en: "Activities with float < 0. Indicates schedule is behind. Target 0%.", ar: "الأنشطة ذات السماحية < 0. تشير إلى تأخر الجدول. الهدف 0%." }
+      },
+      {
+        name: { en: "8. High Duration", ar: "8. المدة الطويلة" },
+        desc: { en: "Activities taking longer than 2 reporting periods (44 days). Max 5%.", ar: "الأنشطة التي تستغرق أكثر من فترتي تقرير (44 يومًا). الحد الأقصى 5%." }
+      },
+      {
+        name: { en: "9. Invalid Dates", ar: "9. تواريخ غير صالحة" },
+        desc: { en: "Forecast dates in the past or actual dates in the future. Target 0%.", ar: "تواريخ متوقعة في الماضي أو تواريخ فعلية في المستقبل. الهدف 0%." }
+      },
+      {
+        name: { en: "10. Resources", ar: "10. الموارد" },
+        desc: { en: "All activities should be resource/cost loaded (Check if required).", ar: "يجب تحميل جميع الأنشطة بالموارد/التكلفة (تحقق إذا كان مطلوبًا)." }
+      },
+      {
+        name: { en: "11. Missed Tasks", ar: "11. المهام الفائتة" },
+        desc: { en: "Activities that should have finished by data date but haven't. Max 5%.", ar: "الأنشطة التي كان يجب أن تنتهي بحلول تاريخ البيانات ولم تنتهِ. الحد الأقصى 5%." }
+      },
+      {
+        name: { en: "12. Critical Path Test", ar: "12. اختبار المسار الحرج" },
+        desc: { en: "Critical path must be continuous and unbroken.", ar: "يجب أن يكون المسار الحرج متصلاً وغير مقطوع." }
+      },
+      {
+        name: { en: "13. CPLI", ar: "13. مؤشر طول المسار الحرج" },
+        desc: { en: "Critical Path Length Index. Target > 1.0.", ar: "مؤشر طول المسار الحرج. الهدف > 1.0." }
+      },
+      {
+        name: { en: "14. BEI", ar: "14. مؤشر التنفيذ الأساسي" },
+        desc: { en: "Baseline Execution Index. Target > 1.0.", ar: "مؤشر تنفيذ خط الأساس. الهدف > 1.0." }
+      }
+    ]
+  },
+  aramco: {
+    title: { en: "Saudi Aramco Schedule Specifications", ar: "مواصفات الجدول الزمني لأرامكو السعودية" },
+    description: { 
+      en: "Based on typical Schedule 'A' requirements for EPC/Construction contracts in Saudi Aramco.",
+      ar: "بناءً على متطلبات الجدول 'أ' النموذجية لعقود الهندسة والتوريد والبناء في أرامكو السعودية."
+    },
+    criteria: [
+      {
+        name: { en: "Level 1-4 Structure", ar: "هيكلية المستويات 1-4" },
+        desc: { en: "Schedule must clearly rollup from Activity (L4) to WBS (L3), Area (L2), and Project (L1).", ar: "يجب أن يترابط الجدول بوضوح من النشاط (م4) إلى هيكل العمل (م3)، والمنطقة (م2)، والمشروع (م1)." }
+      },
+      {
+        name: { en: "Resource Loading", ar: "تحميل الموارد" },
+        desc: { en: "Manhours must be assigned to construction activities. Costs/Weight for procurement.", ar: "يجب تعيين ساعات العمل لأنشطة البناء. والتكلفة/الوزن للمشتريات." }
+      },
+      {
+        name: { en: "Activity Durations", ar: "مدد الأنشطة" },
+        desc: { en: "Construction activities should generally not exceed 30 days.", ar: "يجب ألا تتجاوز أنشطة البناء عمومًا 30 يومًا." }
+      },
+      {
+        name: { en: "Coding Structure", ar: "هيكل الترميز" },
+        desc: { en: "Mandatory Activity Codes: Phase, Area, Discipline, Responsibility.", ar: "أكواد الأنشطة الإلزامية: المرحلة، المنطقة، التخصص، المسؤولية." }
+      },
+      {
+        name: { en: "Procurement Cycle", ar: "دورة المشتريات" },
+        desc: { en: "Must show: PO Issue, Manufacturing, FAT, Delivery to Site.", ar: "يجب إظهار: إصدار أمر الشراء، التصنيع، فحص المصنع، التوصيل للموقع." }
+      },
+      {
+        name: { en: "Logic Constraints", ar: "قيود المنطق" },
+        desc: { en: "Minimize use of 'Start-to-Start' without lag. Avoid 'Finish-to-Finish'.", ar: "تقليل استخدام 'بداية-لبداية'. تجنب 'نهاية-لنهاية'." }
+      }
+    ]
+  },
+  fidic: {
+    title: { en: "FIDIC Contract Requirements (Clause 8.3)", ar: "متطلبات عقود فيديك (المادة 8.3)" },
+    description: { 
+      en: "Requirements typically found in FIDIC Red/Yellow Books regarding the Programme of Works.",
+      ar: "المتطلبات الموجودة عادة في كتب فيديك الحمراء/الصفراء بخصوص برنامج الأعمال."
+    },
+    criteria: [
+      {
+        name: { en: "Time for Completion", ar: "وقت الإنجاز" },
+        desc: { en: "Schedule must respect the Time for Completion as stated in the Appendix to Tender.", ar: "يجب أن يحترم الجدول وقت الإنجاز المذكور في ملحق العطاء." }
+      },
+      {
+        name: { en: "Order of Works", ar: "ترتيب الأعمال" },
+        desc: { en: "Must show the order in which Contractor intends to carry out Works.", ar: "يجب إظهار الترتيب الذي ينوي المقاول تنفيذ الأعمال به." }
+      },
+      {
+        name: { en: "Contractor's Documents", ar: "وثائق المقاول" },
+        desc: { en: "Include periods for review and approval of Contractor's Documents.", ar: "تضمين فترات مراجعة واعتماد وثائق المقاول." }
+      },
+      {
+        name: { en: "Inspections & Tests", ar: "الفحوصات والاختبارات" },
+        desc: { en: "Sequence of specified tests and inspections must be visible.", ar: "يجب أن يكون تسلسل الاختبارات والفحوصات المحدد مرئيًا." }
+      },
+      {
+        name: { en: "Supporting Report", ar: "التقرير الداعم" },
+        desc: { en: "Submission must include a general description of methods and resources.", ar: "يجب أن يتضمن التقديم وصفًا عامًا للطرق والموارد." }
+      },
+      {
+        name: { en: "Critical Path", ar: "المسار الحرج" },
+        desc: { en: "Although not explicitly named 'CPM' in older versions, modern FIDIC requires logical links showing criticality.", ar: "على الرغم من عدم تسميته صراحة بـ CPM قديمًا، تتطلب النسخ الحديثة روابط منطقية تظهر المسار الحرج." }
+      }
+    ]
+  },
+  pmi: {
+    title: { en: "PMI Scheduling Practice", ar: "ممارسات الجدولة (PMI)" },
+    description: { 
+      en: "Best practices defined in the PMBOK Guide and Practice Standard for Scheduling.",
+      ar: "أفضل الممارسات المحددة في دليل PMBOK ومعيار ممارسة الجدولة."
+    },
+    criteria: [
+      {
+        name: { en: "Schedule Model Validity", ar: "صلاحية نموذج الجدول" },
+        desc: { en: "Network logic must be complete (Activities have predecessors/successors).", ar: "يجب أن يكون منطق الشبكة مكتملاً (الأنشطة لها سابق ولاحق)." }
+      },
+      {
+        name: { en: "Float Management", ar: "إدارة السماحية" },
+        desc: { en: "Total Float must be calculated accurately. Excessive float suggests missing logic.", ar: "يجب حساب السماحية الكلية بدقة. السماحية المفرطة تشير إلى منطق مفقود." }
+      },
+      {
+        name: { en: "Baseline Maintenance", ar: "صيانة خط الأساس" },
+        desc: { en: "Comparison against approved baseline is mandatory for variance analysis.", ar: "المقارنة مع خط الأساس المعتمد إلزامية لتحليل التباين." }
+      },
+      {
+        name: { en: "Resource Optimization", ar: "تحسين الموارد" },
+        desc: { en: "Schedule should be leveled to avoid resource over-allocation.", ar: "يجب تسوية الجدول لتجنب التخصيص المفرط للموارد." }
+      }
+    ]
+  },
+  general: {
+    title: { en: "General Best Practices", ar: "أفضل الممارسات العامة" },
+    description: { 
+      en: "A mix of standard checks suitable for non-contractual or internal reviews.",
+      ar: "مزيج من الفحوصات القياسية المناسبة للمراجعات الداخلية أو غير التعاقدية."
+    },
+    criteria: [
+      { name: { en: "Logical Sequence", ar: "التسلسل المنطقي" }, desc: { en: "Ensures dates flow logically.", ar: "يضمن تدفق التواريخ بشكل منطقي." } },
+      { name: { en: "Negative Float", ar: "السماحية السالبة" }, desc: { en: "Checks for delays.", ar: "يتحقق من وجود تأخيرات." } },
+      { name: { en: "Activity Durations", ar: "مدد الأنشطة" }, desc: { en: "Flags usually long durations.", ar: "يحدد المدد الطويلة بشكل غير معتاد." } },
+      { name: { en: "Dangling Activities", ar: "الأنشطة المعلقة" }, desc: { en: "Open ends check.", ar: "فحص النهايات المفتوحة." } }
+    ]
+  }
+};
 
 export const i18n = {
   [Language.EN]: {
@@ -46,16 +227,67 @@ export const i18n = {
     dragDrop: "Click to upload or drag and drop",
     dragDropSub: "Accepts CSV, Text, XML files or Images (Screenshots) of Gantt Charts",
     selectStandard: "Select Review Standard",
+    selectProvider: "Select AI Provider",
     analyzeButton: "Run Expert Analysis",
     analyzing: "Performing Comprehensive Evaluation...",
     
+    // Dashboard & Report
+    reportViews: "Report Views",
+    tabOverview: "Project Overview",
+    tabHealthCheck: "Schedule Health Check",
+    tabActivityRegister: "Activity Register",
+    tabSequence: "Logic & Sequencing",
+    
+    statTotalActivities: "No of Activities",
+    statCriticalActivities: "Critical Activities",
+    statDuration: "Duration",
+    statFinishDate: "Finish Date",
+    statRiskLevel: "Schedule Risk Level",
+    
+    activityList: "Activity List",
+    logicSequenceAnalysis: "Logic Sequence Analysis",
+    
+    // Report Table Headers & Labels
+    colId: "ID",
+    colActivity: "Activity Name",
+    colDuration: "Dur",
+    colStart: "Start",
+    colFinish: "Finish",
+    colFloat: "Float",
+    colStatus: "Status",
+    colCheck: "Check",
+    colDescription: "Description",
+    colTarget: "Target",
+    colActual: "Actual",
+    colFound: "Found",
+    colTotal: "Total",
+    
+    lblDays: "Days",
+    lblDataDate: "Data Date",
+    lblTarget: "Target",
+    lblPassingMetrics: "Passing Metrics",
+    lblReportFooter: "Report Type: Power BI Style",
+    lblStdFooter: "Std: DCMA 14-Point",
+
+    // Filters & Values
+    filterAll: "All Activities",
+    filterCritical: "Critical Path",
+    filterHighFloat: "High Float",
+    valHigh: "High",
+    valMedium: "Medium",
+    valLow: "Low",
+    valCritical: "Critical",
+    valNormal: "Normal",
+    valPass: "PASS",
+    valFail: "FAIL",
+
     // Output Sections
     analysisReport: "Executive Summary",
     riskAssessment: "Risk Assessment",
     technicalFindings: "Technical Findings",
     recommendations: "Strategic Recommendations",
     nonCompliance: "Non-Compliance Issues",
-    contractorNote: "Formal Contractor Correspondence",
+    contractorNote: "Official Letter to Contractor",
     copy: "Copy",
     copied: "Copied!",
     
@@ -147,8 +379,59 @@ export const i18n = {
     dragDrop: "اضغط للرفع أو اسحب الملف هنا",
     dragDropSub: "نقبل ملفات CSV, Text, XML أو صور (Screenshots) من P6/MSP",
     selectStandard: "اختر معيار المراجعة",
+    selectProvider: "مزود الخدمة",
     analyzeButton: "بدء التحليل الشامل",
     analyzing: "جاري إجراء التقييم الفني...",
+
+    // Dashboard & Report
+    reportViews: "طرق العرض",
+    tabOverview: "نظرة عامة للمشروع",
+    tabHealthCheck: "فحص صحة الجدول",
+    tabActivityRegister: "سجل الأنشطة",
+    tabSequence: "المنطق والتسلسل",
+    
+    statTotalActivities: "عدد الأنشطة",
+    statCriticalActivities: "الأنشطة الحرجة",
+    statDuration: "المدة الزمنية",
+    statFinishDate: "تاريخ الانتهاء",
+    statRiskLevel: "مستوى المخاطر",
+    
+    activityList: "قائمة الأنشطة",
+    logicSequenceAnalysis: "تحليل منطق التسلسل",
+
+    // Report Table Headers & Labels
+    colId: "المعرف",
+    colActivity: "اسم النشاط",
+    colDuration: "المدة",
+    colStart: "البداية",
+    colFinish: "النهاية",
+    colFloat: "السماحية",
+    colStatus: "الحالة",
+    colCheck: "الفحص",
+    colDescription: "الوصف",
+    colTarget: "الهدف",
+    colActual: "الفعلي",
+    colFound: "الموجود",
+    colTotal: "الإجمالي",
+    
+    lblDays: "يوم",
+    lblDataDate: "تاريخ البيانات",
+    lblTarget: "الهدف",
+    lblPassingMetrics: "مؤشرات النجاح",
+    lblReportFooter: "نوع التقرير: Power BI Style",
+    lblStdFooter: "المعيار: DCMA 14-Point",
+
+    // Filters & Values
+    filterAll: "جميع الأنشطة",
+    filterCritical: "المسار الحرج",
+    filterHighFloat: "سماحية عالية",
+    valHigh: "عالي",
+    valMedium: "متوسط",
+    valLow: "منخفض",
+    valCritical: "حرج",
+    valNormal: "عادي",
+    valPass: "ناجح",
+    valFail: "فشل",
 
     // Output Sections
     analysisReport: "الملخص التنفيذي",
@@ -156,7 +439,7 @@ export const i18n = {
     technicalFindings: "الملاحظات الفنية",
     recommendations: "التوصيات الاستراتيجية",
     nonCompliance: "نقاط عدم الالتزام",
-    contractorNote: "مراسلات المقاول الرسمية",
+    contractorNote: "خطاب رسمي للمقاول",
     copy: "نسخ",
     copied: "تم النسخ!",
 

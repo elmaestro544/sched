@@ -67,23 +67,26 @@
             background-color: #134e4a; /* Teal 900 */
         }
 
-        /* Print Styles */
+        /* --- PROFESSIONAL PRINT REPORT STYLES --- */
         @media print {
             @page {
-                margin: 1.5cm;
-                size: auto;
+                margin: 0.5in; /* Action: Reduce margins to 0.5" */
+                size: A4;
             }
+            
             body {
                 background: white !important;
                 background-image: none !important;
-                color: black !important;
+                color: #111 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                font-size: 12pt;
+                /* Action: Optimize Font Sizing */
+                font-size: 9.5pt !important; 
+                line-height: 1.25 !important;
             }
             
             /* Hide UI elements */
-            .no-print, header, footer, .fixed, nav, button {
+            .no-print, header, footer, .fixed, nav, button, .custom-scrollbar {
                 display: none !important;
             }
             
@@ -92,78 +95,153 @@
                 display: block !important;
             }
 
+            /* --- Grid Systems for Print --- */
+            
             /* Main Container Reset */
-            .container, .max-w-6xl {
+            .container, .max-w-6xl, .max-w-7xl, .max-w-5xl {
                 max-width: 100% !important;
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
 
-            /* Report Styling */
-            .printable-report {
-                display: block !important;
-                width: 100% !important;
+            /* Action: Dedicated "Key Stats" Sidebar Layout */
+            .print-sidebar-layout {
+                display: grid !important;
+                grid-template-columns: 22% 76% !important; /* ~1/4 Sidebar, 3/4 Main */
+                gap: 2% !important;
+                align-items: start !important;
+            }
+            
+            .print-col-sidebar {
+                grid-column: 1 / 2;
+            }
+            
+            .print-col-main {
+                grid-column: 2 / 3;
             }
 
-            /* Card Resets */
+            /* Action: 3-Column Grid for Metrics */
+            .print-grid-3 {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 0.5rem !important;
+            }
+
+            /* --- Card & Visual Resets --- */
             .printable-report .shadow-lg, 
             .printable-report .shadow-2xl,
             .printable-report .shadow-sm {
                 box-shadow: none !important;
-                border: 1px solid #eee !important;
-                page-break-inside: avoid;
-                margin-bottom: 1rem;
+                border: 1px solid #ddd !important;
+                border-radius: 4px !important;
+                margin-bottom: 0.75rem !important;
+                break-inside: avoid !important; /* Prevent awkward breaks */
             }
 
-            /* Colors Reset */
+            /* Compact Padding for Print */
+            .printable-report .p-4, .printable-report .p-6, .printable-report .p-8 {
+                padding: 0.5rem !important;
+            }
+            .printable-report .p-5 {
+                padding: 0.5rem !important;
+            }
+
+            /* Text & Colors */
             .printable-report .bg-white, 
             .printable-report .dark\:bg-card-gradient {
                 background: white !important;
                 color: black !important;
             }
-
-            /* Text Colors */
-            .printable-report p, 
-            .printable-report h3, 
-            .printable-report h4, 
-            .printable-report li,
-            .printable-report span:not(.badge) {
-                color: #1f2937 !important; /* gray-800 */
-            }
-
-            /* Specific Sections */
-            .printable-report .bg-slate-900, 
-            .printable-report .bg-gradient-to-r {
-                background: #fff !important;
-                border: 2px solid #000 !important;
-                color: black !important;
-            }
-            .printable-report .bg-slate-900 * {
-                color: black !important;
-            }
-
-            /* Recommendation Box */
-            .printable-report .bg-blue-50, 
-            .printable-report .dark\:bg-blue-900\/10 {
-                background-color: #f8fafc !important;
-                border: 1px solid #cbd5e1 !important;
-            }
-
-            /* Grid Layout adjustments for print */
-            .grid {
-                display: block !important; /* Often safer to stack in print */
-            }
-            .grid > div {
-                margin-bottom: 1.5rem;
+            .printable-report p, h1, h2, h3, h4, h5, h6, li, span, td, th {
+                color: #0f172a !important; /* slate-900 */
             }
             
-            /* Risk Badge */
-            .badge {
-               border: 1px solid #000; 
-               background: #fff !important;
-               color: #000 !important;
-               font-weight: bold;
+            /* Action: Condensed Headers */
+            h3, h2 {
+                font-weight: 800 !important;
+                margin-bottom: 0.25rem !important;
+                text-transform: uppercase !important;
+                letter-spacing: -0.01em !important;
+                font-size: 11pt !important;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 2px;
+            }
+
+            /* Input Fields -> Static Text */
+            input, textarea, select {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: inherit !important;
+                color: black !important;
+                resize: none !important;
+                box-shadow: none !important;
+                width: auto !important;
+                display: inline-block !important;
+                min-height: auto !important;
+            }
+            /* Expand textarea to fit content roughly */
+            textarea {
+                display: block;
+                width: 100%;
+                white-space: pre-wrap;
+                overflow: hidden;
+            }
+
+            /* --- Specific Component Overrides --- */
+
+            /* Stat Cards: Stack vertically in sidebar */
+            .print-sidebar-stack {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            
+            /* Stat Card Styling */
+            .print-stat-card {
+                border: 1px solid #ccc !important;
+                background: #f8fafc !important;
+                padding: 0.5rem !important;
+                text-align: center;
+            }
+            .print-stat-card span.text-3xl {
+                font-size: 1.5rem !important; /* Smaller big numbers */
+            }
+
+            /* Tables */
+            table {
+                font-size: 8pt !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            th, td {
+                padding: 4px 6px !important;
+                border: 1px solid #eee !important;
+            }
+            th {
+                background-color: #f1f5f9 !important; /* slate-100 */
+                font-weight: bold !important;
+                text-transform: uppercase;
+            }
+
+            /* Lists (Findings/Non-Compliance) */
+            ul.space-y-4 {
+                margin-top: 0 !important;
+            }
+            ul.space-y-4 > li {
+                margin-bottom: 0.5rem !important;
+            }
+
+            /* Page Breaks */
+            .page-break-after {
+                page-break-after: always;
+            }
+            
+            /* Hide empty graphical elements */
+            .bg-gradient-to-tr, .absolute.inset-0 {
+                display: none !important;
             }
         }
 

@@ -8,12 +8,13 @@ import Terms from './components/Terms.js';
 import Privacy from './components/Privacy.js';
 import AuthModal from './components/AuthModal.js';
 import AuthRequired from './components/AuthRequired.js';
-import { Logo, SunIcon, MoonIcon, MenuIcon, CloseIcon, UserIcon } from './components/Shared.js';
+import SettingsModal from './components/SettingsModal.js';
+import { Logo, SunIcon, MoonIcon, MenuIcon, CloseIcon, UserIcon, SettingsIcon } from './components/Shared.js';
 import { isAnyModelConfigured } from './services/geminiService.js';
 import { supabase } from './services/supabaseClient.js';
 
 // Header Component
-const Header = ({ currentView, setView, language, setLanguage, theme, toggleTheme, onMenuToggle, user, onLogin, onLogout }) => {
+const Header = ({ currentView, setView, language, setLanguage, theme, toggleTheme, onMenuToggle, user, onLogin, onLogout, onOpenSettings }) => {
   const t = i18n[language];
   
   const navLinks = React.createElement('div', { className: `flex items-center gap-6 ${language === Language.AR ? 'flex-row-reverse' : ''}` },
@@ -33,10 +34,17 @@ const Header = ({ currentView, setView, language, setLanguage, theme, toggleThem
   
   const controls = React.createElement('div', { className: "flex items-center gap-2 sm:gap-4" },
       React.createElement('button', {
+          onClick: onOpenSettings,
+          title: "API Settings",
+          className: 'text-slate-500 dark:text-brand-text-light hover:bg-slate-200 dark:hover:bg-white/20 p-2 rounded-full transition-colors'
+      }, React.createElement(SettingsIcon, { className: "w-5 h-5" })),
+      
+      React.createElement('button', {
           onClick: toggleTheme,
           'aria-label': 'Toggle theme',
           className: 'text-slate-500 dark:text-brand-text-light hover:bg-slate-200 dark:hover:bg-white/20 p-2 rounded-full transition-colors'
       }, theme === 'light' ? React.createElement(MoonIcon) : React.createElement(SunIcon)),
+      
       React.createElement('button', {
         onClick: () => setLanguage(language === Language.EN ? Language.AR : Language.EN),
         className: "text-sm font-semibold bg-slate-200 dark:bg-brand-light-dark text-slate-700 dark:text-white px-3 py-1.5 rounded-full hover:bg-slate-300 dark:hover:bg-white/20 transition-colors"
@@ -85,7 +93,7 @@ const Header = ({ currentView, setView, language, setLanguage, theme, toggleThem
 };
 
 // Mobile Menu
-const MobileMenu = ({ isOpen, onClose, currentView, setView, language, setLanguage, theme, toggleTheme, user, onLogin, onLogout }) => {
+const MobileMenu = ({ isOpen, onClose, currentView, setView, language, setLanguage, theme, toggleTheme, user, onLogin, onLogout, onOpenSettings }) => {
     if (!isOpen) return null;
     const t = i18n[language];
     
@@ -107,6 +115,12 @@ const MobileMenu = ({ isOpen, onClose, currentView, setView, language, setLangua
                     React.createElement('button', { onClick: () => handleNavigate(AppView.About), className: "w-full text-lg py-3 rounded-md hover:bg-slate-200 dark:hover:bg-white/10" }, t.navAbout),
                 ),
                 React.createElement('div', { className: 'mt-auto pt-6 border-t border-slate-200 dark:border-white/10 space-y-4' },
+                     // Settings button for Mobile
+                     React.createElement('button', {
+                        onClick: () => { onClose(); onOpenSettings(); },
+                        className: "w-full flex items-center justify-center gap-2 bg-slate-200 dark:bg-white/5 py-3 rounded-xl"
+                     }, React.createElement(SettingsIcon, { className: "w-5 h-5" }), "API Settings"),
+
                      user ? (
                          React.createElement('div', { className: "text-center" },
                              React.createElement('p', { className: "font-medium text-slate-900 dark:text-brand-text mb-2" }, 
@@ -158,9 +172,9 @@ const Footer = ({ language, setView }) => {
 const App = () => {
   const [view, setView] = useState(AppView.Home);
   const [language, setLanguage] = useState(Language.AR); 
-  const [apiKeyError, setApiKeyError] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [user, setUser] = useState(null);
   
   const [theme, setTheme] = useState(() => {
@@ -204,12 +218,11 @@ const App = () => {
     document.documentElement.dir = language === Language.AR ? 'rtl' : 'ltr';
   }, [language]);
   
-  useEffect(() => {
-    if (!isAnyModelConfigured()) setApiKeyError(true);
-  }, []);
+  // NOTE: We removed the blocking API error screen. 
+  // The user can now configure keys via the SettingsModal if analysis fails.
 
   const renderView = () => {
-    const props = { language, setView, theme };
+    const props = { language, setView, theme, onOpenSettings: () => setIsSettingsOpen(true) };
 
     switch (view) {
       case AppView.Home: return React.createElement(Home, props);
@@ -240,7 +253,8 @@ const App = () => {
       onMenuToggle: () => setIsMobileMenuOpen(true),
       user,
       onLogin: () => setIsAuthModalOpen(true),
-      onLogout: handleLogout
+      onLogout: handleLogout,
+      onOpenSettings: () => setIsSettingsOpen(true)
     }),
     React.createElement(MobileMenu, {
       isOpen: isMobileMenuOpen,
@@ -253,19 +267,11 @@ const App = () => {
       toggleTheme,
       user,
       onLogin: () => setIsAuthModalOpen(true),
-      onLogout: handleLogout
+      onLogout: handleLogout,
+      onOpenSettings: () => setIsSettingsOpen(true)
     }),
     React.createElement('main', { className: "flex-grow container mx-auto p-4 md:p-8" },
-      apiKeyError ? (
-        React.createElement('div', { className: "flex flex-col items-center justify-center h-full text-center" },
-          React.createElement('div', { className: "bg-white dark:bg-brand-light-dark border border-brand-red/50 p-8 rounded-2xl max-w-md shadow-lg shadow-brand-red/20" },
-            React.createElement('h2', { className: "text-2xl font-bold text-brand-red mb-4" }, "API Key Error"),
-            React.createElement('p', { className: "text-slate-600 dark:text-brand-text-light" }, i18n[language].apiKeyError)
-          )
-        )
-      ) : (
         renderView()
-      )
     ),
     React.createElement(Footer, { language, setView }),
     React.createElement(AuthModal, {
@@ -274,6 +280,11 @@ const App = () => {
         onLoginSuccess: () => setIsAuthModalOpen(false), // Session listener handles user state
         language,
         setView
+    }),
+    React.createElement(SettingsModal, {
+        isOpen: isSettingsOpen,
+        onClose: () => setIsSettingsOpen(false),
+        language
     })
   );
 };
