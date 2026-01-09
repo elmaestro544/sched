@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { PLANNING_STANDARDS, AI_PROVIDERS } from "../constants.js";
 
@@ -32,7 +33,7 @@ const getKey = (keyName) => {
 // Helper to get configured model
 const getModel = (providerId) => {
     const provider = AI_PROVIDERS.find(p => p.id === providerId);
-    if (!provider) return 'gemini-2.5-flash'; // Fallback
+    if (!provider) return 'gemini-3-flash-preview'; // Fallback
     
     let keyName = '';
     switch(providerId) {
@@ -139,8 +140,7 @@ const cleanAndParseJSON = (str) => {
         }
     }
     
-    // Fallback: If peeling failed completely (extremely rare for valid JSON output), throw original error logic
-    // or try one last simple trim parse just in case
+    // Fallback
     try {
         return JSON.parse(cleanStr);
     } catch (e) {
@@ -149,14 +149,13 @@ const cleanAndParseJSON = (str) => {
     }
 };
 
-// --- Generic OpenAI Compatible Call (For OpenAI, OpenRouter, Perplexity, Groq) ---
-const callOpenAICompatible = async (providerId, systemPrompt, userContent, isImage) => {
+// --- Generic OpenAI Compatible Call ---
+const callOpenAICompatible = async (providerId, systemPrompt, inputItems, hasImages) => {
     const providerConfig = AI_PROVIDERS.find(p => p.id === providerId);
     if (!providerConfig) throw new Error("Invalid Provider");
 
     let apiKey, baseUrl, model;
     
-    // Get user configured model or default
     model = getModel(providerId);
     
     switch(providerId) {
@@ -167,9 +166,7 @@ const callOpenAICompatible = async (providerId, systemPrompt, userContent, isIma
         case 'groq':
             apiKey = getKey('VITE_GROQ_API_KEY');
             baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-            // Groq Vision Check: If user is sending an image but selected a text-only model, 
-            // force the vision model to avoid failure.
-            if (isImage && !model.includes('vision')) {
+            if (hasImages && !model.includes('vision')) {
                  model = 'llama-3.2-90b-vision-preview';
             }
             break;
@@ -180,28 +177,26 @@ const callOpenAICompatible = async (providerId, systemPrompt, userContent, isIma
         case 'perplexity':
             apiKey = getKey('VITE_PERPLEXITY_API_KEY');
             baseUrl = 'https://api.perplexity.ai/chat/completions';
-            if (isImage) throw new Error("Perplexity does not support image analysis. Please choose Gemini, OpenAI, or Groq.");
+            if (hasImages) throw new Error("Perplexity does not support image analysis.");
             break;
         default:
             throw new Error("Provider not implemented");
     }
 
-    if (!apiKey) throw new Error(`Missing API Key for ${providerConfig.name}. Please configure it in Settings.`);
+    if (!apiKey) throw new Error(`Missing API Key for ${providerConfig.name}.`);
 
-    // Construct Messages
     const messages = [{ role: "system", content: systemPrompt }];
+    const userMessageContent = [];
 
-    if (isImage && providerId !== 'perplexity') {
-        messages.push({
-            role: "user",
-            content: [
-                { type: "text", text: "Analyze this schedule image." },
-                { type: "image_url", image_url: { url: userContent } }
-            ]
-        });
-    } else {
-        messages.push({ role: "user", content: userContent });
-    }
+    inputItems.forEach(item => {
+        if (item.type === 'image') {
+            userMessageContent.push({ type: "image_url", image_url: { url: item.data } });
+        } else {
+            userMessageContent.push({ type: "text", text: item.data });
+        }
+    });
+    
+    messages.push({ role: "user", content: userMessageContent });
 
     const response = await fetchWithRetry(() => fetch(baseUrl, {
         method: 'POST',
@@ -214,7 +209,7 @@ const callOpenAICompatible = async (providerId, systemPrompt, userContent, isIma
             model: model,
             messages: messages,
             response_format: { type: "json_object" }, 
-            temperature: 0.2
+            temperature: 0.1
         })
     }));
 
@@ -231,14 +226,13 @@ const callOpenAICompatible = async (providerId, systemPrompt, userContent, isIma
 };
 
 // --- Main Analysis Function ---
-export const analyzeSchedule = async (inputData, isImage, standardId, language, providerId = 'gemini') => {
+export const analyzeSchedule = async (inputItems, hasImages, standardId, language, providerId = 'gemini') => {
     
     const standardObj = PLANNING_STANDARDS.find(s => s.id === standardId);
     const standardName = standardObj ? standardObj.name.en : "General Project Management Best Practices";
 
-    // Detailed DCMA 14-Point Instruction
     const dcmaInstruction = `
-    If evaluating against 'DCMA 14-Point Assessment', you MUST populate the 'dcmaAnalysis' array with exactly these 14 metrics (do not omit any):
+    If evaluating against 'DCMA 14-Point Assessment', you MUST populate the 'dcmaAnalysis' array with exactly these 14 metrics:
     1. Logic (Missing Logic) - Target < 5%
     2. Leads (Negative Lags) - Target 0%
     3. Lags (Positive Lags) - Target < 5%
@@ -253,61 +247,42 @@ export const analyzeSchedule = async (inputData, isImage, standardId, language, 
     12. Critical Path Test (Pass/Fail)
     13. CPLI (Critical Path Length Index) - Target > 1.0
     14. BEI (Baseline Execution Index) - Target > 1.0
-    For each metric, provide a 'value' (number), 'target' (number), 'status' (PASS/FAIL), 'found' (count), and 'total' (count).
     `;
 
-    // Updated Instruction: Mandate Dual Language Output & Specific Standard & Correspondence Direction
     const systemInstruction = `You are a Seasoned Expert in Project Management and Scheduling Quality Assurance (PMC).
-    Your task is to analyze schedule data and generate a structured dataset for a PowerBI-style dashboard.
+    Your task is to analyze schedule data (could be XER contents, CSV, Text, or one or more images of Gantt charts) and generate a structured dataset for a PowerBI-style dashboard.
 
     ### CRITICAL INSTRUCTION: DUAL LANGUAGE OUTPUT
-    For all narrative text fields (including titles/descriptions in arrays), you MUST return an object containing BOTH English ('en') and Arabic ('ar') translations.
+    For all narrative text fields, you MUST return an object containing BOTH English ('en') and Arabic ('ar') translations.
     
     Example: 
-    "summary": { 
-        "en": "The schedule shows delays...", 
-        "ar": "يظهر الجدول الزمني تأخيرات..." 
-    }
-
-    Keep technical keys (like 'projectOverview', 'status') and enum values ('PASS', 'FAIL', 'High', 'Medium', 'Low') in English.
+    "summary": { "en": "...", "ar": "..." }
 
     ### Objectives:
     1. **Overview Stats**: Extract or estimate total activities, critical activities, duration, and data dates.
-    2. **Compliance Check**: Evaluate the schedule specifically against **${standardName}**. 
-       ${standardId === 'dcma' ? dcmaInstruction : `- If it is 'Saudi Aramco' or 'FIDIC', highlight clauses or requirements specific to those standards.`}
-       - POPULATE 'dcmaAnalysis' ARRAY WITH SPECIFIC CHECKS RELEVANT TO ${standardName}.
-    3. **Activity Data**: Extract specific activities mentioned. If specific rows are not provided, GENERATE 10-15 REPRESENTATIVE ACTIVITIES based on the findings.
-
-    ### Specific Report Sections:
-    - **Technical Findings**: List 3-5 specific technical observations (e.g., "Open Ends / Missing Logic", "High Duration").
-    - **Non-Compliance Issues**: List 3-5 critical breaches of the standard (e.g., "Breach of Logic Integrity", "Use of Hard Constraints").
-    - **Risk Assessment**: A detailed assessment including a risk level (High/Medium/Low) and a descriptive justification.
-    - **Strategic Recommendations**: 3-5 actionable steps for the contractor to fix the schedule.
+    2. **Compliance Check**: Evaluate specifically against **${standardName}**. 
+       ${standardId === 'dcma' ? dcmaInstruction : `- If it is 'Saudi Aramco' or 'FIDIC', highlight relevant requirements.`}
+    3. **Activity Data**: Extract specific activities mentioned or generate 10-15 representative ones based on analysis.
 
     ### Contractor Correspondence:
-    - **contractorNote**: A formal letter from PMC to Contractor instructing rectification.
+    - **contractorNote**: A formal letter from PMC to Contractor instructing rectification based on findings.
 
     ### Output Format:
-    Return ONLY a raw JSON object (no markdown) with this EXACT structure:
+    Return ONLY raw JSON:
     {
         "projectOverview": {
-            "totalActivities": 54,
-            "criticalActivities": 23,
-            "duration": 144,
+            "totalActivities": 0,
+            "criticalActivities": 0,
+            "duration": 0,
             "startDate": "DD/MM/YYYY",
             "finishDate": "DD/MM/YYYY",
             "dataDate": "DD/MM/YYYY"
         },
         "dcmaAnalysis": [
             { 
-                "metric": { "en": "Missing Logic", "ar": "منطق مفقود" }, 
-                "description": { "en": "Activities missing predecessors or successors", "ar": "أنشطة تفتقد لعلاقات سابقة أو لاحقة" },
-                "value": 0.00, 
-                "target": 5, 
-                "operator": "<",
-                "found": 0,
-                "total": 150,
-                "status": "PASS" 
+                "metric": { "en": "...", "ar": "..." }, 
+                "description": { "en": "...", "ar": "..." },
+                "value": 0, "target": 0, "operator": "<", "found": 0, "total": 0, "status": "PASS" 
             }
         ],
         "technicalFindings": [
@@ -316,39 +291,31 @@ export const analyzeSchedule = async (inputData, isImage, standardId, language, 
         "nonComplianceIssues": [
             { "title": { "en": "...", "ar": "..." }, "description": { "en": "...", "ar": "..." } }
         ],
-        "riskAssessment": {
-            "level": "High",
-            "description": { "en": "...", "ar": "..." }
-        },
+        "riskAssessment": { "level": "High", "description": { "en": "...", "ar": "..." } },
         "activities": [
-             { "id": "A1010", "name": "Excavation Works", "duration": 10, "start": "...", "finish": "...", "totalFloat": 0, "critical": true }
+             { "id": "A1010", "name": "...", "duration": 0, "start": "...", "finish": "...", "totalFloat": 0, "critical": true }
         ],
         "summary": { "en": "...", "ar": "..." },
-        "recommendations": [ 
-            { "en": "...", "ar": "..." } 
-        ],
+        "recommendations": [ { "en": "...", "ar": "..." } ],
         "contractorNote": { "en": "...", "ar": "..." }
     }`;
 
     try {
         if (providerId === 'gemini') {
             const currentKey = getKey('VITE_API_KEY');
-            if (!currentKey) throw new Error("Gemini API Key missing. Please configure it in Settings.");
-            
-            // Create client on demand to ensure we use the latest key from LocalStorage
+            if (!currentKey) throw new Error("Gemini API Key missing.");
             const client = new GoogleGenAI({ apiKey: currentKey });
             const selectedModel = getModel('gemini');
 
-            let parts = [];
-            if (isImage) {
-                const base64Data = inputData.includes('base64,') ? inputData.split('base64,')[1] : inputData;
-                parts = [
-                    { inlineData: { mimeType: 'image/png', data: base64Data } },
-                    { text: "Perform a deep forensic analysis of this schedule screenshot. Populate all report sections strictly." }
-                ];
-            } else {
-                parts = [{ text: `Here is the schedule data/narrative for analysis:\n\n${inputData}` }];
-            }
+            const parts = inputItems.map(item => {
+                if (item.type === 'image') {
+                    const base64Data = item.data.includes('base64,') ? item.data.split('base64,')[1] : item.data;
+                    return { inlineData: { mimeType: item.mimeType || 'image/png', data: base64Data } };
+                }
+                return { text: item.data };
+            });
+
+            parts.push({ text: "Perform a forensic analysis. Populate all report sections strictly based on provided inputs." });
 
             const result = await fetchWithRetry(() => client.models.generateContent({
                 model: selectedModel,
@@ -363,12 +330,11 @@ export const analyzeSchedule = async (inputData, isImage, standardId, language, 
             return cleanAndParseJSON(result.text);
 
         } else {
-            return await callOpenAICompatible(providerId, systemInstruction, inputData, isImage);
+            return await callOpenAICompatible(providerId, systemInstruction, inputItems, hasImages);
         }
 
     } catch (e) {
         if (e.message === "DAILY_QUOTA_EXCEEDED") throw e;
-        console.error(`${providerId} Analysis Failed:`, e);
-        throw new Error(e.message || "Failed to parse analysis results. Please try again.");
+        throw new Error(e.message || "Failed to parse analysis results.");
     }
 };

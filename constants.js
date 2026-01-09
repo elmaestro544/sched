@@ -19,14 +19,12 @@ export const AI_PROVIDERS = [
   { 
     id: 'gemini', 
     name: 'Google Gemini', 
-    defaultModel: 'gemini-2.5-flash',
-    description: 'Required for default analysis',
+    defaultModel: 'gemini-3-flash-preview',
+    description: 'Required for multimodal analysis',
     models: [
-        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-        { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview' },
-        { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
-        { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-        { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' }
+        { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
+        { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro' },
+        { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' }
     ],
     icon: '⚡' 
   },
@@ -37,8 +35,7 @@ export const AI_PROVIDERS = [
     description: 'Advanced reasoning',
     models: [
         { id: 'gpt-4o', name: 'GPT-4o' },
-        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
+        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' }
     ],
     icon: '🤖' 
   },
@@ -46,39 +43,12 @@ export const AI_PROVIDERS = [
     id: 'groq', 
     name: 'Groq (Llama 3)', 
     defaultModel: 'llama-3.3-70b-versatile',
-    description: 'High-speed Llama 3 inference',
+    description: 'High-speed inference',
     models: [
         { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B' },
-        { id: 'llama-3.1-70b-versatile', name: 'Llama 3.1 70B' },
-        { id: 'llama3-70b-8192', name: 'Llama 3 70B' },
-        { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7b' },
         { id: 'llama-3.2-90b-vision-preview', name: 'Llama 3.2 90B Vision' }
     ],
     icon: '🚀' 
-  },
-  { 
-    id: 'openrouter', 
-    name: 'OpenRouter', 
-    defaultModel: 'google/gemini-2.0-flash-001',
-    description: 'Access to Claude, Llama, etc.',
-    models: [
-        { id: 'google/gemini-2.0-flash-001', name: 'Google Gemini 2.0 Flash' },
-        { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
-        { id: 'anthropic/claude-3-opus', name: 'Claude 3 Opus' },
-        { id: 'meta-llama/llama-3-70b-instruct', name: 'Llama 3 70B' }
-    ],
-    icon: '🔗' 
-  },
-  { 
-    id: 'perplexity', 
-    name: 'Perplexity', 
-    defaultModel: 'sonar', 
-    description: 'Real-time web search capability',
-    models: [
-        { id: 'sonar', name: 'Sonar' },
-        { id: 'sonar-pro', name: 'Sonar Pro' }
-    ],
-    icon: '🧠' 
   }
 ];
 
@@ -90,7 +60,6 @@ export const PLANNING_STANDARDS = [
   { id: 'general', name: { en: 'General Best Practices', ar: 'أفضل الممارسات العامة' } }
 ];
 
-// --- Detailed Criteria for Modal ---
 export const STANDARD_DETAILS = {
   dcma: {
     title: { en: "DCMA 14-Point Assessment", ar: "تقييم وكالة إدارة عقود الدفاع (14 نقطة)" },
@@ -275,7 +244,7 @@ export const i18n = {
     
     // Home
     homeWelcome: "Review Schedules Faster & Better",
-    homeDescription: "Upload schedule files (Text/CSV/XML) or screenshots of Gantt Charts. Your intelligent assistant will analyze them according to PMC standards and generate a professional report.",
+    homeDescription: "Upload schedule files (XER/CSV/XML) or multiple screenshots of Gantt Charts. Your intelligent assistant will analyze them according to PMC standards and generate a professional report.",
     homeAgentTitle: "Start Analysis",
     homeAgentDesc: "Comprehensive analysis, non-compliance detection, and professional contractor notes.",
     
@@ -285,7 +254,7 @@ export const i18n = {
     inputLabel: "Upload Schedule or Drop Screenshot",
     inputPlaceholder: "Paste schedule narrative, log, or analysis text here...",
     dragDrop: "Click to upload or drag and drop",
-    dragDropSub: "Accepts CSV, Text, XML files or Images (Screenshots) of Gantt Charts",
+    dragDropSub: "Accepts XER, CSV, Text, XML files or multiple Images of Gantt Charts",
     selectStandard: "Select Review Standard",
     selectProvider: "Select AI Provider",
     analyzeButton: "Run Expert Analysis",
@@ -427,17 +396,17 @@ export const i18n = {
 
     // Home
     homeWelcome: "راجع جداولك الزمنية أسرع وبجودة أعلى",
-    homeDescription: "قم برفع ملفات الجدول الزمني (Text/CSV) أو صور المخططات (Gantt Chart)، وسيقوم المساعد الذكي بتحليلها وفق معايير PMC وتوليد تقرير احترافي.",
+    homeDescription: "قم برفع ملفات الجدول الزمني (XER/CSV) أو صور المخططات المتعددة (Gantt Chart)، وسيقوم المساعد الذكي بتحليلها وفق معايير PMC وتوليد تقرير احترافي.",
     homeAgentTitle: "ابدأ التحليل الآن",
     homeAgentDesc: "تحليل شامل، اكتشاف عدم التطابق، وتوليد ملاحظات احترافية جاهزة للمشاركة مع المقاول.",
 
     // PMC Agent Feature
     agentTitle: "خبير مراجعة الجداول الزمنية",
     agentDescription: "مساعد ذكي بخبرة PMC لإجراء تقييم شامل للجدول الزمني، وتحديد عدم الامتثال، وتوليد بيانات داعمة للقرار.",
-    inputLabel: "ارفع الجدول أو اسحب الصورة هنا",
+    inputLabel: "ارفع الجدول أو اسحب الصور هنا",
     inputPlaceholder: "أو الصق النص/التقرير هنا...",
-    dragDrop: "اضغط للرفع أو اسحب الملف هنا",
-    dragDropSub: "نقبل ملفات CSV, Text, XML أو صور (Screenshots) من P6/MSP",
+    dragDrop: "اضغط للرفع أو اسحب الملفات هنا",
+    dragDropSub: "نقبل ملفات XER, CSV, Text, XML أو صور متعددة من P6/MSP",
     selectStandard: "اختر معيار المراجعة",
     selectProvider: "مزود الخدمة",
     analyzeButton: "بدء التحليل الشامل",
