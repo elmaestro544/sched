@@ -16,40 +16,10 @@ export const Language = Object.freeze({
 });
 
 export const AI_PROVIDERS = [
-  { 
-    id: 'gemini', 
-    name: 'Google Gemini', 
-    defaultModel: 'gemini-3-flash-preview',
-    description: 'Required for multimodal analysis',
-    models: [
-        { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
-        { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro' },
-        { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' }
-    ],
-    icon: '⚡' 
-  },
-  { 
-    id: 'openai', 
-    name: 'OpenAI GPT-4o', 
-    defaultModel: 'gpt-4o',
-    description: 'Advanced reasoning',
-    models: [
-        { id: 'gpt-4o', name: 'GPT-4o' },
-        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' }
-    ],
-    icon: '🤖' 
-  },
-  { 
-    id: 'groq', 
-    name: 'Groq (Llama 3)', 
-    defaultModel: 'llama-3.3-70b-versatile',
-    description: 'High-speed inference',
-    models: [
-        { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B' },
-        { id: 'llama-3.2-90b-vision-preview', name: 'Llama 3.2 90B Vision' }
-    ],
-    icon: '🚀' 
-  }
+  { id: 'gemini', name: 'Google Gemini', model: 'gemini-2.5-flash', icon: '⚡' },
+  { id: 'openai', name: 'OpenAI GPT-4o', model: 'gpt-4o', icon: '🤖' },
+  { id: 'openrouter', name: 'OpenRouter', model: 'google/gemini-2.0-flash-001', icon: '🔗' },
+  { id: 'perplexity', name: 'Perplexity', model: 'sonar', icon: '🧠' }
 ];
 
 export const PLANNING_STANDARDS = [
@@ -60,6 +30,7 @@ export const PLANNING_STANDARDS = [
   { id: 'general', name: { en: 'General Best Practices', ar: 'أفضل الممارسات العامة' } }
 ];
 
+// --- Detailed Criteria for Modal ---
 export const STANDARD_DETAILS = {
   dcma: {
     title: { en: "DCMA 14-Point Assessment", ar: "تقييم وكالة إدارة عقود الدفاع (14 نقطة)" },
@@ -70,7 +41,7 @@ export const STANDARD_DETAILS = {
     criteria: [
       {
         name: { en: "1. Logic", ar: "1. المنطق" },
-        desc: { en: "Incomplete logic. Max 5% of activities can lack predecessors or successors.", ar: "المنطق غير المكتمل. يُسمح بحد أقصى 5% من الأنشطة بدون سابق أو لاحق." }
+        desc: { en: "Incomplete logic. Max 5% of activities can lack predecessors/successors.", ar: "المنطق غير المكتمل. يُسمح بحد أقصى 5% من الأنشطة بدون سابق أو لاحق." }
       },
       {
         name: { en: "2. Leads", ar: "2. التداخلات السلبية (Leads)" },
@@ -244,7 +215,7 @@ export const i18n = {
     
     // Home
     homeWelcome: "Review Schedules Faster & Better",
-    homeDescription: "Upload schedule files (XER/CSV/XML) or multiple screenshots of Gantt Charts. Your intelligent assistant will analyze them according to PMC standards and generate a professional report.",
+    homeDescription: "Upload schedule files (Text/CSV/XML) or screenshots of Gantt Charts. Your intelligent assistant will analyze them according to PMC standards and generate a professional report.",
     homeAgentTitle: "Start Analysis",
     homeAgentDesc: "Comprehensive analysis, non-compliance detection, and professional contractor notes.",
     
@@ -254,7 +225,7 @@ export const i18n = {
     inputLabel: "Upload Schedule or Drop Screenshot",
     inputPlaceholder: "Paste schedule narrative, log, or analysis text here...",
     dragDrop: "Click to upload or drag and drop",
-    dragDropSub: "Accepts XER, CSV, Text, XML files or multiple Images of Gantt Charts",
+    dragDropSub: "Accepts CSV, Text, XML files or Images (Screenshots) of Gantt Charts",
     selectStandard: "Select Review Standard",
     selectProvider: "Select AI Provider",
     analyzeButton: "Run Expert Analysis",
@@ -396,17 +367,17 @@ export const i18n = {
 
     // Home
     homeWelcome: "راجع جداولك الزمنية أسرع وبجودة أعلى",
-    homeDescription: "قم برفع ملفات الجدول الزمني (XER/CSV) أو صور المخططات المتعددة (Gantt Chart)، وسيقوم المساعد الذكي بتحليلها وفق معايير PMC وتوليد تقرير احترافي.",
+    homeDescription: "قم برفع ملفات الجدول الزمني (Text/CSV) أو صور المخططات (Gantt Chart)، وسيقوم المساعد الذكي بتحليلها وفق معايير PMC وتوليد تقرير احترافي.",
     homeAgentTitle: "ابدأ التحليل الآن",
     homeAgentDesc: "تحليل شامل، اكتشاف عدم التطابق، وتوليد ملاحظات احترافية جاهزة للمشاركة مع المقاول.",
 
     // PMC Agent Feature
     agentTitle: "خبير مراجعة الجداول الزمنية",
     agentDescription: "مساعد ذكي بخبرة PMC لإجراء تقييم شامل للجدول الزمني، وتحديد عدم الامتثال، وتوليد بيانات داعمة للقرار.",
-    inputLabel: "ارفع الجدول أو اسحب الصور هنا",
+    inputLabel: "ارفع الجدول أو اسحب الصورة هنا",
     inputPlaceholder: "أو الصق النص/التقرير هنا...",
-    dragDrop: "اضغط للرفع أو اسحب الملفات هنا",
-    dragDropSub: "نقبل ملفات XER, CSV, Text, XML أو صور متعددة من P6/MSP",
+    dragDrop: "اضغط للرفع أو اسحب الملف هنا",
+    dragDropSub: "نقبل ملفات CSV, Text, XML أو صور (Screenshots) من P6/MSP",
     selectStandard: "اختر معيار المراجعة",
     selectProvider: "مزود الخدمة",
     analyzeButton: "بدء التحليل الشامل",
